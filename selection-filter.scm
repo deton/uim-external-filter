@@ -148,6 +148,62 @@
          (car latter))))
 
 (define (selection-filter-launch pc cmd)
+  ;; XXX: process-io without parent reading ret from child to avoid error:
+  ;;   Error: in >: integer required but got: #f
+  ;; (ex: when cmd is "ls", result of ls is read by parent that is not number)
+  (define (my-process-io file . args)
+    (let-optionals* args ((argv (list file)))
+      (and-let* ((pin (create-pipe))
+                 (pout (create-pipe))
+                 (pin-in  (car pin))
+                 (pin-out (cdr pin))
+                 (pout-in  (car pout))
+                 (pout-out (cdr pout)))
+        (let ((pid (process-fork))
+              (ret 0))
+          (cond ((< pid 0)
+                 (begin
+                   (uim-notify-fatal (N_ "cannot fork"))
+                   (file-close pin-in)
+                   (file-close pin-out)
+                   (file-close pout-in)
+                   (file-close pout-out)
+                   #f))
+                ((= 0 pid) ;; child
+                 (setsid)
+                 (file-close pin-out)
+                 (if (< (duplicate-fileno pin-in 0) 0)
+                   (begin
+                     (uim-notify-fatal (N_ "cannot duplicate stdin"))
+                     (set! ret (bitwise-ior ret process-dup2-failed))))
+                 (file-close pin-in)
+
+                 (file-close pout-in)
+                 (if (< (duplicate-fileno pout-out 1) 0)
+                   (begin
+                     (uim-notify-fatal (N_ "cannot duplicate stdout"))
+                     (set! ret (bitwise-ior ret process-dup2-failed))))
+                 (file-close pout-out)
+
+                 (if (= (process-execute file argv) -1)
+                   (uim-notify-fatal (format (_ "cannot execute ~a") file)))
+                 ;(set! ret (bitwise-ior ret process-exec-failed))
+                 ;(file-write-string 1 (number->string ret))
+                 (_exit 1)
+                 )
+                (else ;; parent
+                 (file-close pin-in)
+                 (file-close pout-out)
+                 ;(if (and-let*
+                 ;      (((file-ready? (list pout-in) 100))
+                 ;       (lst (file-read pout-in 1))
+                 ;       ((not (eof-object? lst)))
+                 ;       ((> (string->number (list->string lst)) 0))));Error
+                 ;  (begin
+                 ;    (file-close pout-in)
+                 ;    (file-close pin-out)
+                 ;    #f)
+                 (cons pout-in pin-out)))))))
   ;; file-read-line without newline check.
   (define (file-read-all port)
     (let loop ((c (file-read-char port))
@@ -166,7 +222,7 @@
     (selection-filter-context-set-undo-str! pc (if (string? str) str ""))
     (if (string? str)
       (and-let*
-        ((fds (process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
+        ((fds (my-process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
          (iport (open-file-port (car fds)))
          (oport (open-file-port (cdr fds))))
         (file-display str oport)
@@ -181,7 +237,7 @@
         (selection-filter-context-set-undo-len! pc (count-char cmd))
         (im-commit pc cmd)))))
 
-;;; register filter command from selection
+;;; temporarily register filter command from selection
 (define (selection-filter-register pc key)
   (let ((sym (selection-filter-command-symbol key))
         (str (selection-filter-acquire-text pc)))
