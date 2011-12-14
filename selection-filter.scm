@@ -38,15 +38,16 @@
 
 (define selection-filter-key-command-alist ())
 
+(define (selection-filter-command-symbol key)
+  (string->symbol
+    (string-append "selection-filter-command-" (charcode->string key))))
+
 (define (selection-filter-key-command-alist-update)
   (set! selection-filter-key-command-alist
     (append
       (filter-map
         (lambda (x)
-          (let* ((symstr (string-append
-                          "selection-filter-command-"
-                          (charcode->string x)))
-                 (cmd (symbol-value (string->symbol symstr))))
+          (let ((cmd (symbol-value (selection-filter-command-symbol x))))
             (and (not (string=? cmd ""))
                  (list x cmd))))
         (iota 26 (char->integer #\a))))))
@@ -97,6 +98,9 @@
         (let ((key-cmd (assv key selection-filter-key-command-alist)))
           (if key-cmd
             (selection-filter-launch pc (cadr key-cmd)))))
+      ((ichar-upper-case? key)
+        (selection-filter-context-set-undo-str! pc #f)
+        (selection-filter-register pc (ichar-downcase key)))
       (else
         (selection-filter-context-set-undo-str! pc #f)
         (im-commit-raw pc)))))
@@ -176,6 +180,13 @@
       (begin
         (selection-filter-context-set-undo-len! pc (count-char cmd))
         (im-commit pc cmd)))))
+
+;;; register filter command from selection
+(define (selection-filter-register pc key)
+  (let ((sym (selection-filter-command-symbol key))
+        (str (selection-filter-acquire-text pc)))
+    (set-symbol-value! sym (if (string? str) str ""))
+    (selection-filter-key-command-alist-update)))
 
 (define (selection-filter-undo pc)
   (let ((str (selection-filter-context-undo-str pc))
