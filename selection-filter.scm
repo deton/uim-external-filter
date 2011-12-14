@@ -159,6 +159,7 @@
         (lambda ()
           (%%string-reconstruct! (string-copy str))))))
   (let ((str (selection-filter-acquire-text pc)))
+    (selection-filter-context-set-undo-str! pc (if (string? str) str ""))
     (if (string? str)
       (and-let*
         ((fds (process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
@@ -169,13 +170,12 @@
         (let ((res (file-read-all iport)))
           (close-file-port iport)
           (if (and (string? res) (not (string=? res "")))
-            (let ((undo-str (selection-filter-acquire-text pc)))
-              (selection-filter-context-set-undo-str! pc
-                (if (string? undo-str)
-                  undo-str
-                  ""))
+            (begin
               (selection-filter-context-set-undo-len! pc (count-char res))
-              (im-commit pc res))))))))
+              (im-commit pc res)))))
+      (begin
+        (selection-filter-context-set-undo-len! pc (count-char cmd))
+        (im-commit pc cmd)))))
 
 (define (selection-filter-undo pc)
   (let ((str (selection-filter-context-undo-str pc))
