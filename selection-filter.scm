@@ -36,18 +36,20 @@
 
 (define selection-filter-encoding "UTF-8")
 
-(define (selection-filter-index->key idx)
-  (+ idx (char->integer #\a)))
+(define selection-filter-key-command-alist ())
 
-(define selection-filter-key-command-alist
-  (append-map
-    (lambda (x)
-      (let* ((symstr (string-append
-                      "selection-filter-command-"
-                      (charcode->string x)))
-             (cmd (symbol-value (string->symbol symstr))))
-        (list (list x cmd))))
-    (map selection-filter-index->key (iota 26))))
+(define (selection-filter-key-command-alist-update)
+  (set! selection-filter-key-command-alist
+    (append
+      (filter-map
+        (lambda (x)
+          (let* ((symstr (string-append
+                          "selection-filter-command-"
+                          (charcode->string x)))
+                 (cmd (symbol-value (string->symbol symstr))))
+            (and (not (string=? cmd ""))
+                 (list x cmd))))
+        (iota 26 (char->integer #\a))))))
 
 (define selection-filter-context-rec-spec
   (append
@@ -66,6 +68,7 @@
 (define selection-filter-init-handler
   (lambda (id im arg)
     (let ((pc (selection-filter-context-new id im)))
+      (selection-filter-key-command-alist-update)
       pc)))
 
 (define (selection-filter-release-handler pc)
@@ -91,9 +94,9 @@
         (im-commit-raw pc))
       ((ichar-lower-case? key)
         (selection-filter-context-set-undo-str! pc #f)
-        (let* ((cmd (cadr (assv key selection-filter-key-command-alist))))
-          (if (not (string=? cmd ""))
-            (selection-filter-launch pc cmd))))
+        (let ((key-cmd (assv key selection-filter-key-command-alist)))
+          (if key-cmd
+            (selection-filter-launch pc (cadr key-cmd)))))
       (else
         (selection-filter-context-set-undo-str! pc #f)
         (im-commit-raw pc)))))
@@ -102,16 +105,13 @@
   (im-commit-raw pc))
 
 (define (selection-filter-get-candidate-handler pc idx accel-enum-hint)
-  (let ((key (selection-filter-index->key idx)))
-    (list (cadr (assv key selection-filter-key-command-alist))
-      (charcode->string key) "")))
+  (let ((key-cmd (list-ref selection-filter-key-command-alist idx)))
+    (list (cadr key-cmd) (charcode->string (car key-cmd)) "")))
 
 (define (selection-filter-set-candidate-index-handler pc idx)
   (im-deactivate-candidate-selector pc)
-  (let* ((key (selection-filter-index->key idx))
-         (cmd (cadr (assv key selection-filter-key-command-alist))))
-    (if (not (string=? cmd ""))
-      (selection-filter-launch pc cmd))))
+  (let ((key-cmd (list-ref selection-filter-key-command-alist idx)))
+    (selection-filter-launch pc (cadr key-cmd))))
 
 (register-im
  'selection-filter
@@ -188,12 +188,6 @@
           (im-commit pc str))))))
 
 (define (selection-filter-help pc)
-  (let ((nr (count
-              (lambda (x)
-               (not (string=? x "")))
-              (map
-                (lambda (x)
-                  (cadr x))
-                selection-filter-key-command-alist))))
+  (let ((nr (length selection-filter-key-command-alist)))
     (im-activate-candidate-selector pc nr nr) ; TODO: display-limit
     (im-select-candidate pc 0))) ; to select candidate by click
