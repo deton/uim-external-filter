@@ -1,6 +1,6 @@
 ;;; launch external filter on selection
 ;;;
-;;; Copyright (c) 2011 KIHARA Hideto https://github.com/deton/uim-selection-filter
+;;; Copyright (c) 2011 KIHARA Hideto https://github.com/deton/uim-external-filter
 ;;;
 ;;; All rights reserved.
 ;;;
@@ -32,106 +32,106 @@
 (require-extension (srfi 1 2))
 (require "i18n.scm")
 (require "process.scm")
-(require-custom "selection-filter-custom.scm")
+(require-custom "external-filter-custom.scm")
 
-(define selection-filter-encoding "UTF-8")
+(define external-filter-encoding "UTF-8")
 
-(define selection-filter-key-command-alist ())
+(define external-filter-key-command-alist ())
 
-(define (selection-filter-command-symbol key)
+(define (external-filter-command-symbol key)
   (string->symbol
-    (string-append "selection-filter-command-" (charcode->string key))))
+    (string-append "external-filter-command-" (charcode->string key))))
 
-(define (selection-filter-key-command-alist-update)
-  (set! selection-filter-key-command-alist
+(define (external-filter-key-command-alist-update)
+  (set! external-filter-key-command-alist
     (append
       (filter-map
         (lambda (x)
-          (let ((cmd (symbol-value (selection-filter-command-symbol x))))
+          (let ((cmd (symbol-value (external-filter-command-symbol x))))
             (and (not (string=? cmd ""))
                  (list x cmd))))
         (iota 26 (char->integer #\a))))))
 
-(define selection-filter-context-rec-spec
+(define external-filter-context-rec-spec
   (append
     context-rec-spec
     (list
       (list 'undo-len 0)
       (list 'undo-str #f))))
-(define-record 'selection-filter-context selection-filter-context-rec-spec)
-(define selection-filter-context-new-internal selection-filter-context-new)
+(define-record 'external-filter-context external-filter-context-rec-spec)
+(define external-filter-context-new-internal external-filter-context-new)
 
-(define selection-filter-context-new
+(define external-filter-context-new
   (lambda args
-    (let ((pc (apply selection-filter-context-new-internal args)))
+    (let ((pc (apply external-filter-context-new-internal args)))
       pc)))
 
-(define selection-filter-init-handler
+(define external-filter-init-handler
   (lambda (id im arg)
-    (let ((pc (selection-filter-context-new id im)))
-      (selection-filter-key-command-alist-update)
+    (let ((pc (external-filter-context-new id im)))
+      (external-filter-key-command-alist-update)
       pc)))
 
-(define (selection-filter-release-handler pc)
+(define (external-filter-release-handler pc)
   (im-deactivate-candidate-selector pc))
 
-(define (selection-filter-key-press-handler pc key key-state)
+(define (external-filter-key-press-handler pc key key-state)
   (im-deactivate-candidate-selector pc)
   (if (ichar-control? key)
     (begin
-      (selection-filter-context-set-undo-str! pc #f)
+      (external-filter-context-set-undo-str! pc #f)
       (im-commit-raw pc))
     (cond
-      ((selection-filter-help-key? key key-state)
-        (selection-filter-help pc)
-        (selection-filter-context-set-undo-str! pc #f))
-      ((selection-filter-undo-key? key key-state)
-        (selection-filter-undo pc)
-        (selection-filter-context-set-undo-str! pc #f))
+      ((external-filter-help-key? key key-state)
+        (external-filter-help pc)
+        (external-filter-context-set-undo-str! pc #f))
+      ((external-filter-undo-key? key key-state)
+        (external-filter-undo pc)
+        (external-filter-context-set-undo-str! pc #f))
       ((or (symbol? key)
            (and (modifier-key-mask key-state)
                 (not (shift-key-mask key-state))))
-        (selection-filter-context-set-undo-str! pc #f)
+        (external-filter-context-set-undo-str! pc #f)
         (im-commit-raw pc))
       ((ichar-lower-case? key)
-        (selection-filter-context-set-undo-str! pc #f)
-        (let ((key-cmd (assv key selection-filter-key-command-alist)))
+        (external-filter-context-set-undo-str! pc #f)
+        (let ((key-cmd (assv key external-filter-key-command-alist)))
           (if key-cmd
-            (selection-filter-launch pc (cadr key-cmd)))))
+            (external-filter-launch pc (cadr key-cmd)))))
       ((ichar-upper-case? key)
-        (selection-filter-context-set-undo-str! pc #f)
-        (selection-filter-register pc (ichar-downcase key)))
+        (external-filter-context-set-undo-str! pc #f)
+        (external-filter-register pc (ichar-downcase key)))
       (else
-        (selection-filter-context-set-undo-str! pc #f)
+        (external-filter-context-set-undo-str! pc #f)
         (im-commit-raw pc)))))
 
-(define (selection-filter-key-release-handler pc key state)
+(define (external-filter-key-release-handler pc key state)
   (im-commit-raw pc))
 
-(define (selection-filter-get-candidate-handler pc idx accel-enum-hint)
-  (let ((key-cmd (list-ref selection-filter-key-command-alist idx)))
+(define (external-filter-get-candidate-handler pc idx accel-enum-hint)
+  (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
     (list (cadr key-cmd) (charcode->string (car key-cmd)) "")))
 
-(define (selection-filter-set-candidate-index-handler pc idx)
+(define (external-filter-set-candidate-index-handler pc idx)
   (im-deactivate-candidate-selector pc)
-  (let ((key-cmd (list-ref selection-filter-key-command-alist idx)))
-    (selection-filter-launch pc (cadr key-cmd))))
+  (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
+    (external-filter-launch pc (cadr key-cmd))))
 
 (register-im
- 'selection-filter
+ 'external-filter
  "*"
- selection-filter-encoding
- selection-filter-im-name-label
- selection-filter-im-short-desc
+ external-filter-encoding
+ external-filter-im-name-label
+ external-filter-im-short-desc
  #f
- selection-filter-init-handler
- selection-filter-release-handler
+ external-filter-init-handler
+ external-filter-release-handler
  context-mode-handler
- selection-filter-key-press-handler
- selection-filter-key-release-handler
+ external-filter-key-press-handler
+ external-filter-key-release-handler
  #f
- selection-filter-get-candidate-handler
- selection-filter-set-candidate-index-handler
+ external-filter-get-candidate-handler
+ external-filter-set-candidate-index-handler
  context-prop-activate-handler
  #f
  #f
@@ -140,14 +140,14 @@
  #f
  )
 
-(define (selection-filter-acquire-text pc id)
+(define (external-filter-acquire-text pc id)
   (and-let*
     ((ustr (im-acquire-text pc id 'beginning 0 'full))
      (latter (ustr-latter-seq ustr)))
     (and (pair? latter)
          (car latter))))
 
-(define (selection-filter-launch pc cmd)
+(define (external-filter-launch pc cmd)
   ;; XXX: process-io without parent reading ret from child to avoid error:
   ;;   Error: in >: integer required but got: #f
   ;; (ex: when cmd is "ls", result of ls is read by parent that is not number)
@@ -225,39 +225,39 @@
         (and (string? res)
              (not (string=? res ""))
              res))))
-  (let ((str (selection-filter-acquire-text pc 'selection)))
+  (let ((str (external-filter-acquire-text pc 'selection)))
     (if (string? str)
-      (selection-filter-commit pc (launch cmd str) str)
-      (let ((clip (selection-filter-acquire-text pc 'clipboard)))
+      (external-filter-commit pc (launch cmd str) str)
+      (let ((clip (external-filter-acquire-text pc 'clipboard)))
         (if (string? clip)
-          (selection-filter-commit pc (launch cmd clip) ""))))))
+          (external-filter-commit pc (launch cmd clip) ""))))))
 
 ;;; temporarily register filter command from selection
-(define (selection-filter-register pc key)
-  (let ((sym (selection-filter-command-symbol key))
-        (str (selection-filter-acquire-text pc 'selection)))
+(define (external-filter-register pc key)
+  (let ((sym (external-filter-command-symbol key))
+        (str (external-filter-acquire-text pc 'selection)))
     (if (string? str)
       (begin
         (set-symbol-value! sym str)
-        (selection-filter-key-command-alist-update))
-      (selection-filter-commit pc (symbol-value sym) ""))))
+        (external-filter-key-command-alist-update))
+      (external-filter-commit pc (symbol-value sym) ""))))
 
-(define (selection-filter-commit pc commit-str undo-str)
+(define (external-filter-commit pc commit-str undo-str)
   (define (count-char str)
     (string-length
-      (with-char-codec selection-filter-encoding
+      (with-char-codec external-filter-encoding
         (lambda ()
           (%%string-reconstruct! (string-copy str))))))
   (if (string? commit-str)
     (begin
-      (selection-filter-context-set-undo-str! pc
+      (external-filter-context-set-undo-str! pc
         (if (string? undo-str) undo-str ""))
-      (selection-filter-context-set-undo-len! pc (count-char commit-str))
+      (external-filter-context-set-undo-len! pc (count-char commit-str))
       (im-commit pc commit-str))))
 
-(define (selection-filter-undo pc)
-  (let ((str (selection-filter-context-undo-str pc))
-        (len (selection-filter-context-undo-len pc)))
+(define (external-filter-undo pc)
+  (let ((str (external-filter-context-undo-str pc))
+        (len (external-filter-context-undo-len pc)))
     (if str
       (begin
         (if (> len 0)
@@ -265,7 +265,7 @@
         (if (not (string=? str ""))
           (im-commit pc str))))))
 
-(define (selection-filter-help pc)
-  (let ((nr (length selection-filter-key-command-alist)))
+(define (external-filter-help pc)
+  (let ((nr (length external-filter-key-command-alist)))
     (im-activate-candidate-selector pc nr nr) ; TODO: display-limit
     (im-select-candidate pc 0))) ; to select candidate by click
