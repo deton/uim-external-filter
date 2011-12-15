@@ -140,9 +140,9 @@
  #f
  )
 
-(define (selection-filter-acquire-text pc)
+(define (selection-filter-acquire-text pc id)
   (and-let*
-    ((ustr (im-acquire-text pc 'selection 'beginning 0 'full))
+    ((ustr (im-acquire-text pc id 'beginning 0 'full))
      (latter (ustr-latter-seq ustr)))
     (and (pair? latter)
          (car latter))))
@@ -213,36 +213,47 @@
              (list->string (reverse rest)))
             (else
              (loop (file-read-char port) (cons c rest))))))
+  (define (launch cmd str)
+    (and-let*
+      ((fds (my-process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
+       (iport (open-file-port (car fds)))
+       (oport (open-file-port (cdr fds))))
+      (file-display str oport)
+      (close-file-port oport)
+      (let ((res (file-read-all iport)))
+        (close-file-port iport)
+        (and (string? res)
+             (not (string=? res ""))
+             res))))
+  (let ((str (selection-filter-acquire-text pc 'selection)))
+    (if (string? str)
+      (selection-filter-commit pc (launch cmd str) str)
+      (let ((clip (selection-filter-acquire-text pc 'clipboard)))
+        (if (string? clip)
+          (selection-filter-commit pc (launch cmd clip) ""))))))
+
+;;; temporarily register filter command from selection
+(define (selection-filter-register pc key)
+  (let ((sym (selection-filter-command-symbol key))
+        (str (selection-filter-acquire-text pc 'selection)))
+    (if (string? str)
+      (begin
+        (set-symbol-value! sym str)
+        (selection-filter-key-command-alist-update))
+      (selection-filter-commit pc (symbol-value sym) ""))))
+
+(define (selection-filter-commit pc commit-str undo-str)
   (define (count-char str)
     (string-length
       (with-char-codec selection-filter-encoding
         (lambda ()
           (%%string-reconstruct! (string-copy str))))))
-  (let ((str (selection-filter-acquire-text pc)))
-    (selection-filter-context-set-undo-str! pc (if (string? str) str ""))
-    (if (string? str)
-      (and-let*
-        ((fds (my-process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
-         (iport (open-file-port (car fds)))
-         (oport (open-file-port (cdr fds))))
-        (file-display str oport)
-        (close-file-port oport)
-        (let ((res (file-read-all iport)))
-          (close-file-port iport)
-          (if (and (string? res) (not (string=? res "")))
-            (begin
-              (selection-filter-context-set-undo-len! pc (count-char res))
-              (im-commit pc res)))))
-      (begin
-        (selection-filter-context-set-undo-len! pc (count-char cmd))
-        (im-commit pc cmd)))))
-
-;;; temporarily register filter command from selection
-(define (selection-filter-register pc key)
-  (let ((sym (selection-filter-command-symbol key))
-        (str (selection-filter-acquire-text pc)))
-    (set-symbol-value! sym (if (string? str) str ""))
-    (selection-filter-key-command-alist-update)))
+  (if (string? commit-str)
+    (begin
+      (selection-filter-context-set-undo-str! pc
+        (if (string? undo-str) undo-str ""))
+      (selection-filter-context-set-undo-len! pc (count-char commit-str))
+      (im-commit pc commit-str))))
 
 (define (selection-filter-undo pc)
   (let ((str (selection-filter-context-undo-str pc))
