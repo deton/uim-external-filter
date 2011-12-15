@@ -36,20 +36,28 @@
 
 (define external-filter-encoding "UTF-8")
 
-(define external-filter-key-command-alist ())
+(define external-filter-key-command-alist '())
 
 (define (external-filter-command-symbol key)
   (string->symbol
     (string-append "external-filter-command-" (charcode->string key))))
 
 (define (external-filter-key-command-alist-update)
+  (define (parse-cmd cmd)
+    (cond
+      ((string=? (substring cmd 0 2) ";;")
+        (list (substring cmd 2 (string-length cmd)) 'candwin-split))
+      ((string=? (substring cmd 0 1) ";")
+        (list (substring cmd 1 (string-length cmd)) 'candwin))
+      (else
+        (list cmd 'commit))))
   (set! external-filter-key-command-alist
     (append
       (filter-map
         (lambda (x)
           (let ((cmd (symbol-value (external-filter-command-symbol x))))
             (and (not (string=? cmd ""))
-                 (list x cmd))))
+                 (cons x (parse-cmd cmd)))))
         (iota 26 (char->integer #\a))))))
 
 (define external-filter-context-rec-spec
@@ -99,7 +107,7 @@
         (external-filter-context-set-undo-str! pc #f)
         (let ((key-cmd (assv key external-filter-key-command-alist)))
           (if key-cmd
-            (external-filter-launch pc (cadr key-cmd)))))
+            (external-filter-launch pc (cdr key-cmd)))))
       ((ichar-upper-case? key)
         (external-filter-context-set-undo-str! pc #f)
         (external-filter-register pc (ichar-downcase key)))
@@ -152,7 +160,7 @@
     (and (pair? latter)
          (car latter))))
 
-(define (external-filter-launch pc cmd)
+(define (external-filter-launch pc cmd-op)
   ;; XXX: process-io without parent reading ret from child to avoid error:
   ;;   Error: in >: integer required but got: #f
   ;; (ex: when cmd is "ls", result of ls is read by parent that is not number)
@@ -240,21 +248,14 @@
             (external-filter-show-candwin pc res undo-str))
           ((candwin-split)
             (external-filter-show-candwin-split pc res undo-str))))))
-  (define (parse-cmd cmd)
-    (cond
-      ((string=? (substring cmd 0 2) ";;")
-        (list (substring cmd 2 (string-length cmd)) 'candwin-split))
-      ((string=? (substring cmd 0 1) ";")
-        (list (substring cmd 1 (string-length cmd)) 'candwin))
-      (else
-        (list cmd 'commit))))
-  (let ((pcmd (parse-cmd cmd))
+  (let ((cmd (car cmd-op))
+        (op (cadr cmd-op))
         (str (external-filter-acquire-text pc 'selection)))
     (if (string? str)
-      (launch-and-show pc (car pcmd) (cadr pcmd) str str)
+      (launch-and-show pc cmd op str str)
       (let ((clip (external-filter-acquire-text pc 'clipboard)))
         (if (string? clip)
-          (launch-and-show pc (car pcmd) (cadr pcmd) clip ""))))))
+          (launch-and-show pc cmd op clip ""))))))
 
 ;;; temporarily register filter command from selection
 (define (external-filter-register pc key)
@@ -306,7 +307,7 @@
   (external-filter-context-set-set-candidate-index-handler! pc
     (lambda (pc idx)
       (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
-        (external-filter-launch pc (cadr key-cmd)))))
+        (external-filter-launch pc (cdr key-cmd)))))
   (let ((nr (length external-filter-key-command-alist)))
     (im-activate-candidate-selector pc nr nr) ; TODO: display-limit
     (im-select-candidate pc 0))) ; to select candidate by click
