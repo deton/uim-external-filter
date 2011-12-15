@@ -1,4 +1,4 @@
-;;; launch external filter on selection
+;;; launch external filter on selection or clipboad
 ;;;
 ;;; Copyright (c) 2011 KIHARA Hideto https://github.com/deton/uim-external-filter
 ;;;
@@ -29,7 +29,7 @@
 ;;; SUCH DAMAGE.
 ;;;;
 
-(require-extension (srfi 1 2))
+(require-extension (srfi 1 2 8))
 (require "i18n.scm")
 (require "process.scm")
 (require-custom "external-filter-custom.scm")
@@ -56,6 +56,8 @@
   (append
     context-rec-spec
     (list
+      (list 'get-candidate-handler #f)
+      (list 'set-candidate-index-handler #f)
       (list 'undo-len 0)
       (list 'undo-str #f))))
 (define-record 'external-filter-context external-filter-context-rec-spec)
@@ -109,13 +111,16 @@
   (im-commit-raw pc))
 
 (define (external-filter-get-candidate-handler pc idx accel-enum-hint)
-  (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
-    (list (cadr key-cmd) (charcode->string (car key-cmd)) "")))
+  (let ((handler (external-filter-context-get-candidate-handler pc)))
+    (if handler
+      (handler pc idx accel-enum-hint)
+      (list "" "" ""))))
 
 (define (external-filter-set-candidate-index-handler pc idx)
   (im-deactivate-candidate-selector pc)
-  (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
-    (external-filter-launch pc (cadr key-cmd))))
+  (let ((handler (external-filter-context-set-candidate-index-handler pc)))
+    (if handler
+      (handler pc idx))))
 
 (register-im
  'external-filter
@@ -225,12 +230,31 @@
         (and (string? res)
              (not (string=? res ""))
              res))))
-  (let ((str (external-filter-acquire-text pc 'selection)))
+  (define (launch-and-show pc cmd op str undo-str)
+    (let ((res (launch cmd str)))
+      (if res
+        (case op
+          ((commit)
+            (external-filter-commit pc res undo-str))
+          ((candwin)
+            (external-filter-show-candwin pc res undo-str))
+          ((candwin-split)
+            (external-filter-show-candwin-split pc res undo-str))))))
+  (define (parse-cmd cmd)
+    (cond
+      ((string=? (substring cmd 0 2) ";;")
+        (list (substring cmd 2 (string-length cmd)) 'candwin-split))
+      ((string=? (substring cmd 0 1) ";")
+        (list (substring cmd 1 (string-length cmd)) 'candwin))
+      (else
+        (list cmd 'commit))))
+  (let ((pcmd (parse-cmd cmd))
+        (str (external-filter-acquire-text pc 'selection)))
     (if (string? str)
-      (external-filter-commit pc (launch cmd str) str)
+      (launch-and-show pc (car pcmd) (cadr pcmd) str str)
       (let ((clip (external-filter-acquire-text pc 'clipboard)))
         (if (string? clip)
-          (external-filter-commit pc (launch cmd clip) ""))))))
+          (launch-and-show pc (car pcmd) (cadr pcmd) clip ""))))))
 
 ;;; temporarily register filter command from selection
 (define (external-filter-register pc key)
@@ -248,12 +272,44 @@
       (with-char-codec external-filter-encoding
         (lambda ()
           (%%string-reconstruct! (string-copy str))))))
-  (if (string? commit-str)
-    (begin
-      (external-filter-context-set-undo-str! pc
-        (if (string? undo-str) undo-str ""))
-      (external-filter-context-set-undo-len! pc (count-char commit-str))
-      (im-commit pc commit-str))))
+  (external-filter-context-set-undo-str! pc
+    (if (string? undo-str) undo-str ""))
+  (external-filter-context-set-undo-len! pc (count-char commit-str))
+  (im-commit pc commit-str))
+
+(define (external-filter-show-candwin pc commit-str undo-str)
+  (external-filter-context-set-get-candidate-handler! pc
+    (lambda (pc idx accel-enum-hint)
+      (list commit-str "1" "")))
+  (external-filter-context-set-set-candidate-index-handler! pc
+    (lambda (pc idx)
+      (external-filter-commit pc commit-str undo-str)))
+  (im-activate-candidate-selector pc 1 1)
+  (im-select-candidate pc 0))
+
+(define (external-filter-show-candwin-split pc commit-str undo-str)
+  (let ((cands (string-split commit-str "\n")))
+    (external-filter-context-set-get-candidate-handler! pc
+      (lambda (pc idx accel-enum-hint)
+        (list (list-ref cands idx) (number->string idx) "")))
+    (external-filter-context-set-set-candidate-index-handler! pc
+      (lambda (pc idx)
+        (external-filter-commit pc (list-ref cands idx) undo-str)))
+    (im-activate-candidate-selector pc (length cands) (length cands)) ; TODO:limit
+    (im-select-candidate pc 0)))
+
+(define (external-filter-help pc)
+  (external-filter-context-set-get-candidate-handler! pc
+    (lambda (pc idx accel-enum-hint)
+      (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
+        (list (cadr key-cmd) (charcode->string (car key-cmd)) ""))))
+  (external-filter-context-set-set-candidate-index-handler! pc
+    (lambda (pc idx)
+      (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
+        (external-filter-launch pc (cadr key-cmd)))))
+  (let ((nr (length external-filter-key-command-alist)))
+    (im-activate-candidate-selector pc nr nr) ; TODO: display-limit
+    (im-select-candidate pc 0))) ; to select candidate by click
 
 (define (external-filter-undo pc)
   (let ((str (external-filter-context-undo-str pc))
@@ -264,8 +320,3 @@
           (im-delete-text pc 'primary 'cursor len 0))
         (if (not (string=? str ""))
           (im-commit pc str))))))
-
-(define (external-filter-help pc)
-  (let ((nr (length external-filter-key-command-alist)))
-    (im-activate-candidate-selector pc nr nr) ; TODO: display-limit
-    (im-select-candidate pc 0))) ; to select candidate by click

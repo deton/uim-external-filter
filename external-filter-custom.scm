@@ -25,7 +25,7 @@
   (N_ "filter command for key a")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-b "wc -lwmc"
+(define-custom 'external-filter-command-b ";;wc -lwmc"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key b")
