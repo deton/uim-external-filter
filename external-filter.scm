@@ -291,22 +291,26 @@
     (external-filter-show-candwin-sub pc cands undo-str)))
 
 (define (external-filter-show-candwin-sub pc cands undo-str)
+  (define (unset-handlers)
+    (external-filter-context-set-key-press-handler! pc #f)
+    (external-filter-context-set-get-candidate-handler! pc #f)
+    (external-filter-context-set-set-candidate-index-handler! pc #f))
   (external-filter-context-set-key-press-handler! pc
     (lambda (pc key key-state)
       (cond
         ((generic-commit-key? key key-state)
           (external-filter-commit pc (list-ref cands 0) undo-str)
+          (unset-handlers)
           #t)
         ((generic-cancel-key? key key-state)
           (external-filter-context-set-undo-str! pc #f)
-          (external-filter-context-set-key-press-handler! pc #f)
-          (external-filter-context-set-get-candidate-handler! pc #f)
-          (external-filter-context-set-set-candidate-index-handler! pc #f)
+          (unset-handlers)
           #t)
         ((and (ichar-numeric? key)
               (< (numeric-ichar->integer key) (length cands)))
           (external-filter-commit pc
             (list-ref cands (numeric-ichar->integer key)) undo-str)
+          (unset-handlers)
           #t)
         (else
           #f))))
