@@ -7,6 +7,12 @@
                      external-filter-im-name-label
                      external-filter-im-short-desc)
 
+(define-custom 'external-filter-nr-candidate-max 10
+  '(external-filter)
+  '(integer 1 99)
+  (N_ "Number of candidates in candidate window at a time")
+  (N_ "long description will be here."))
+
 (define-custom 'external-filter-help-key '("<IgnoreShift>?")
   '(external-filter)
   '(key)
