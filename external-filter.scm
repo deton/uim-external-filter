@@ -297,9 +297,9 @@
           ((commit)
             (external-filter-commit pc res undo-str))
           ((candwin)
-            (external-filter-show-candwin pc res undo-str))
+            (external-filter-show-candwin pc res #f undo-str))
           ((candwin-split)
-            (external-filter-show-candwin-split pc res undo-str))))))
+            (external-filter-show-candwin pc res #t undo-str))))))
   (let ((cmd (car cmd-op))
         (op (cadr cmd-op))
         (str (external-filter-acquire-text pc 'selection)))
@@ -334,36 +334,37 @@
   (external-filter-context-set-undo-str! pc #f)
   (im-commit-raw pc))
 
-(define (external-filter-show-candwin pc commit-str undo-str)
-  (external-filter-show-candwin-sub pc (list commit-str) undo-str))
-
-(define (external-filter-show-candwin-split pc commit-str undo-str)
-  (let ((cands (string-split commit-str "\n")))
-    (external-filter-show-candwin-sub pc cands undo-str)))
-
-(define (external-filter-show-candwin-sub pc cands undo-str)
-  (define (commit pc idx)
-    (external-filter-deactivate-candwin pc)
-    (external-filter-commit pc (list-ref cands idx) undo-str))
-  (external-filter-context-set-set-candidate-index-handler! pc commit)
-  (external-filter-context-set-get-candidate-handler! pc
-    (lambda (pc idx accel-enum-hint)
-      (list (list-ref cands idx) (number->string idx) "")))
-  (external-filter-context-set-key-press-handler! pc
-    (lambda (pc key key-state)
-      (cond
-        ((generic-commit-key? key key-state)
-          (commit pc (external-filter-context-cand-index pc))
-          #t)
-        ((and (ichar-numeric? key)
-              (< (numeric-ichar->integer key) (length cands)))
-          (external-filter-commit pc
-            (list-ref cands (numeric-ichar->integer key)) undo-str)
-          (external-filter-deactivate-candwin pc)
-          #t)
-        (else
-          #f))))
-  (external-filter-activate-candwin pc (length cands)))
+(define (external-filter-show-candwin pc candstr split? undo-str)
+  (let* ((cands
+          (if split?
+            (filter
+              (lambda (x)
+                (not (string=? x "")))
+              (string-split candstr "\n"))
+            (list candstr)))
+         (commit
+          (lambda (pc idx)
+            (external-filter-deactivate-candwin pc)
+            (external-filter-commit pc (list-ref cands idx) undo-str))))
+    (external-filter-context-set-set-candidate-index-handler! pc commit)
+    (external-filter-context-set-get-candidate-handler! pc
+      (lambda (pc idx accel-enum-hint)
+        (list (list-ref cands idx) (number->string idx) "")))
+    (external-filter-context-set-key-press-handler! pc
+      (lambda (pc key key-state)
+        (cond
+          ((generic-commit-key? key key-state)
+            (commit pc (external-filter-context-cand-index pc))
+            #t)
+          ((and (ichar-numeric? key)
+                (< (numeric-ichar->integer key) (length cands)))
+            (external-filter-commit pc
+              (list-ref cands (numeric-ichar->integer key)) undo-str)
+            (external-filter-deactivate-candwin pc)
+            #t)
+          (else
+            #f))))
+    (external-filter-activate-candwin pc (length cands))))
 
 (define (external-filter-help pc)
   (define (commit pc idx)
