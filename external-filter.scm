@@ -92,38 +92,64 @@
   (im-deactivate-candidate-selector pc))
 
 (define (external-filter-key-press-handler pc key key-state)
+  (define (handle-for-candwin pc key key-state)
+    (define (change-cand-index pc offset)
+      (let* ((nr (external-filter-context-nr-cands pc))
+             (cur-idx (external-filter-context-cand-index pc))
+             (idx (+ cur-idx offset))
+             (compensated-idx
+              (cond
+                ((< idx 0) 0)
+                ((>= idx nr) (- nr 1))
+                (else idx))))
+        (external-filter-context-set-cand-index! pc compensated-idx)
+        (im-select-candidate pc compensated-idx)))
+    (cond
+      ((not (external-filter-context-key-press-handler pc))
+        #f) ; candwin deactivated
+      ((generic-cancel-key? key key-state)
+        (external-filter-deactivate-candwin pc)
+        #t)
+      ((generic-next-candidate-key? key key-state)
+        (change-cand-index pc 1)
+        #t)
+      ((generic-prev-candidate-key? key key-state)
+        (change-cand-index pc -1)
+        #t)
+      ((generic-next-page-key? key key-state)
+        (change-cand-index pc external-filter-nr-candidate-max)
+        #t)
+      ((generic-prev-page-key? key key-state)
+        (change-cand-index pc (- external-filter-nr-candidate-max))
+        #t)
+      (else
+        #f)))
   (if (ichar-control? key)
-    (begin
-      (external-filter-context-set-undo-str! pc #f)
-      (im-commit-raw pc))
+    (external-filter-commit-raw pc)
     (let* ((handler (external-filter-context-key-press-handler pc))
            (handled? (and handler (handler pc key key-state))))
       (if (not handled?)
-        (begin
-          (external-filter-deactivate-candwin pc)
-          (if (external-filter-undo-key? key key-state)
-            (begin
-              (external-filter-undo pc)
-              (external-filter-context-set-undo-str! pc #f))
-            (begin
-              (external-filter-context-set-undo-str! pc #f)
-              (cond
-                ((generic-cancel-key? key key-state)
-                  (external-filter-deactivate-candwin pc))
-                ((external-filter-help-key? key key-state)
-                  (external-filter-help pc))
-                ((or (symbol? key)
-                     (and (modifier-key-mask key-state)
-                          (not (shift-key-mask key-state))))
-                  (im-commit-raw pc))
-                ((ichar-lower-case? key)
-                  (let ((key-cmd (assv key external-filter-key-command-alist)))
-                    (if key-cmd
-                      (external-filter-launch pc (cdr key-cmd)))))
-                ((ichar-upper-case? key)
-                  (external-filter-register pc (ichar-downcase key)))
-                (else
-                  (im-commit-raw pc))))))))))
+        (if (not (handle-for-candwin pc key key-state))
+          (begin
+            (external-filter-deactivate-candwin pc)
+            (cond
+              ((external-filter-help-key? key key-state)
+                (external-filter-help pc))
+              ((external-filter-undo-key? key key-state)
+                (external-filter-undo pc)
+                (external-filter-context-set-undo-str! pc #f))
+              ((or (symbol? key)
+                   (and (modifier-key-mask key-state)
+                        (not (shift-key-mask key-state))))
+                (external-filter-commit-raw pc))
+              ((ichar-lower-case? key)
+                (let ((key-cmd (assv key external-filter-key-command-alist)))
+                  (if key-cmd
+                    (external-filter-launch pc (cdr key-cmd)))))
+              ((ichar-upper-case? key)
+                (external-filter-register pc (ichar-downcase key)))
+              (else
+                (external-filter-commit-raw pc)))))))))
 
 (define (external-filter-key-release-handler pc key state)
   (im-commit-raw pc))
@@ -297,6 +323,10 @@
   (external-filter-context-set-undo-len! pc (count-char commit-str))
   (im-commit pc commit-str))
 
+(define (external-filter-commit-raw pc)
+  (external-filter-context-set-undo-str! pc #f)
+  (im-commit-raw pc))
+
 (define (external-filter-show-candwin pc commit-str undo-str)
   (external-filter-show-candwin-sub pc (list commit-str) undo-str))
 
@@ -306,8 +336,8 @@
 
 (define (external-filter-show-candwin-sub pc cands undo-str)
   (define (commit pc idx)
-    (external-filter-commit pc (list-ref cands idx) undo-str)
-    (external-filter-deactivate-candwin pc))
+    (external-filter-deactivate-candwin pc)
+    (external-filter-commit pc (list-ref cands idx) undo-str))
   (external-filter-context-set-set-candidate-index-handler! pc commit)
   (external-filter-context-set-get-candidate-handler! pc
     (lambda (pc idx accel-enum-hint)
@@ -330,9 +360,9 @@
 
 (define (external-filter-help pc)
   (define (commit pc idx)
+    (external-filter-deactivate-candwin pc)
     (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
-      (external-filter-launch pc (cdr key-cmd)))
-    (external-filter-deactivate-candwin pc))
+      (external-filter-launch pc (cdr key-cmd))))
   (external-filter-context-set-set-candidate-index-handler! pc commit)
   (external-filter-context-set-get-candidate-handler! pc
     (lambda (pc idx accel-enum-hint)
