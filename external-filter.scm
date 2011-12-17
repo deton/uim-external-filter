@@ -356,11 +356,13 @@
           ((generic-commit-key? key key-state)
             (commit pc (external-filter-context-cand-index pc))
             #t)
+          ((external-filter-split-toggle-key? key key-state)
+            (external-filter-deactivate-candwin pc)
+            (external-filter-show-candwin pc candstr (not split?) undo-str)
+            #t)
           ((and (ichar-numeric? key)
                 (< (numeric-ichar->integer key) (length cands)))
-            (external-filter-commit pc
-              (list-ref cands (numeric-ichar->integer key)) undo-str)
-            (external-filter-deactivate-candwin pc)
+            (commit pc (numeric-ichar->integer key))
             #t)
           (else
             #f))))

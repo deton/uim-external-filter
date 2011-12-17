@@ -25,6 +25,12 @@
   (N_ "[external-filter] undo last filter")
   (N_ "long description will be here"))
 
+(define-custom 'external-filter-split-toggle-key '("<IgnoreShift>;")
+  '(external-filter)
+  '(key)
+  (N_ "[external-filter] toggle split candidate")
+  (N_ "long description will be here"))
+
 (define-custom 'external-filter-command-a "nkf -w -f"
   '(external-filter)
   '(string ".*")
