@@ -161,9 +161,16 @@
       (list "" "" ""))))
 
 (define (external-filter-set-candidate-index-handler pc idx)
-  (let ((handler (external-filter-context-set-candidate-index-handler pc)))
-    (if handler
-      (handler pc idx))))
+  (let* ((prev (external-filter-context-cand-index pc))
+         (prev-page (quotient prev external-filter-nr-candidate-max))
+         (new-page (quotient idx external-filter-nr-candidate-max)))
+    (external-filter-context-set-cand-index! pc idx)
+    (if (= new-page prev-page)
+      (let ((handler (external-filter-context-set-candidate-index-handler pc)))
+        (if handler
+          (handler pc idx)))
+      ;; else page changed by next/prev page button click
+      )))
 
 (define (external-filter-activate-candwin pc nr-cands)
   (external-filter-context-set-nr-cands! pc nr-cands)
