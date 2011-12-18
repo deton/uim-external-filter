@@ -411,10 +411,13 @@
   (let ((sym (external-filter-command-symbol key))
         (str (external-filter-acquire-text pc 'selection)))
     (if (string? str)
-      (begin
-        (set-symbol-value! sym str)
+      (let* ((len (string-length str))
+             (str-trim (if (string=? (substring str (- len 1) len) "\n")
+                          (substring str 0 (- len 1))
+                          str)))
+        (set-symbol-value! sym str-trim)
         (external-filter-key-command-alist-update)
-        (external-filter-save-custom-value pc sym str))
+        (external-filter-save-custom-value pc sym str-trim))
       (external-filter-commit pc (symbol-value sym) ""))))
 
 (define (external-filter-save-custom-value pc custom-symbol custom-value)
