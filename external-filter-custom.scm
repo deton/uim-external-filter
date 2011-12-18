@@ -7,6 +7,12 @@
                      external-filter-im-name-label
                      external-filter-im-short-desc)
 
+(define-custom 'external-filter-string-length-max-on-candwin 80
+  '(external-filter)
+  '(integer 1 99)
+  (N_ "Maximum length of candidate string on candidate window")
+  (N_ "long description will be here."))
+
 (define-custom 'external-filter-nr-candidate-max 10
   '(external-filter)
   '(integer 1 99)

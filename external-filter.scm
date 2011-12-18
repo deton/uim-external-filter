@@ -325,6 +325,27 @@
   (external-filter-context-set-undo-str! pc #f)
   (im-commit-raw pc))
 
+(define (external-filter-limit-cand-length str)
+  ;; string-to-list in deprecated-util.scm with my encoding and without reverse
+  (define my-string-to-list
+    (lambda (s)
+      (with-char-codec external-filter-encoding
+        (lambda ()
+          (map! (lambda (c)
+                  (let ((str (list->string (list c))))
+                    (with-char-codec "ISO-8859-1"
+                      (lambda ()
+                        (%%string-reconstruct! str)))))
+                (string->list s))))))
+  (let* ((strlist (my-string-to-list str))
+         (lim (if (> (length strlist)
+                     external-filter-string-length-max-on-candwin)
+                (append
+                  (take strlist external-filter-string-length-max-on-candwin)
+                  '("..."))
+                strlist)))
+    (apply string-append lim)))
+
 (define (external-filter-show-candwin pc candstr split?)
   (external-filter-deactivate-candwin pc)
   (let ((cands
@@ -344,8 +365,9 @@
     (external-filter-context-set-set-candidate-index-handler! pc commit)
     (external-filter-context-set-get-candidate-handler! pc
       (lambda (pc idx accel-enum-hint)
-        (let ((idx-in-page (remainder idx external-filter-nr-candidate-max)))
-          (list (list-ref cands idx) (number->string idx-in-page) ""))))
+        (let ((idx-in-page (remainder idx external-filter-nr-candidate-max))
+              (str (external-filter-limit-cand-length (list-ref cands idx))))
+          (list str (number->string idx-in-page) ""))))
     (external-filter-context-set-key-press-handler! pc
       (lambda (pc key key-state)
         (cond
@@ -376,15 +398,19 @@
   (external-filter-context-set-set-candidate-index-handler! pc commit)
   (external-filter-context-set-get-candidate-handler! pc
     (lambda (pc idx accel-enum-hint)
+      (define (get-cmdstr-with-candwin-flag key-cmd)
+        (string-append
+          (case (list-ref key-cmd 2)
+            ((commit) "")
+            ((candwin) ";")
+            ((candwin-split) ";;"))
+          (list-ref key-cmd 1)))
       (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
         (list
-          (string-append
-            (case (list-ref key-cmd 2)
-              ((commit) "")
-              ((candwin) ";")
-              ((candwin-split) ";;"))
-            (list-ref key-cmd 1))
-          (charcode->string (car key-cmd)) ""))))
+          (external-filter-limit-cand-length
+            (get-cmdstr-with-candwin-flag key-cmd))
+          (charcode->string (car key-cmd))
+          ""))))
   (external-filter-context-set-key-press-handler! pc
     (lambda (pc key key-state)
       (cond
