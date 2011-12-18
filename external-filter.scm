@@ -449,7 +449,9 @@
 (define (external-filter-save-custom-value pc custom-symbol custom-value)
   (define (write-file filename lines)
     (call-with-open-file-port
-      (file-open filename (file-open-flags-number '($O_WRONLY)) 0)
+      (file-open filename
+        (file-open-flags-number '($O_WRONLY $O_CREAT))
+        (file-open-mode-number '($S_IRUSR $S_IWUSR $S_IRGRP $S_IROTH)))
       (lambda (port)
         (let loop ((lines lines))
           (if (pair? lines)
@@ -467,17 +469,17 @@
               (reverse lines)
               (loop (file-read-line port)
                 (cons (read-from-string line) lines)))))))
-  (and-let* ((filename
-              (string-append (or (home-directory (user-name)) "")
-                "/.uim.d/customs/custom-external-filter.scm"))
-             (lines (read-file filename))
-             (updated-lines
-              (map
-                (lambda (x)
-                  (if (eq? (cadr x) custom-symbol)
-                    (list 'define custom-symbol custom-value)
-                    x))
-                lines)))
-    (if (pair? updated-lines)
-      (write-file filename updated-lines))))
-      ;; XXX: newly create if custom file does not exist
+  (let* ((filename
+          (string-append (or (home-directory (user-name)) "")
+            "/.uim.d/customs/custom-external-filter.scm"))
+         (lines (or (read-file filename) '()))
+         (updated-lines
+          (let ((line (find (lambda (x) (eq? (cadr x) custom-symbol)) lines)))
+            (if line
+              (begin
+                (set-cdr! (cdr line) (list custom-value))
+                lines)
+              (cons
+                (list 'define custom-symbol custom-value)
+                lines)))))
+    (write-file filename updated-lines)))
