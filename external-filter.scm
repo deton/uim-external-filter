@@ -306,8 +306,7 @@
     (if (string? str)
       (launch-and-show pc cmd op str str)
       (let ((clip (external-filter-acquire-text pc 'clipboard)))
-        (if (string? clip)
-          (launch-and-show pc cmd op clip ""))))))
+        (launch-and-show pc cmd op (if (string? clip) clip "") "")))))
 
 ;;; temporarily register filter command from selection
 (define (external-filter-register pc key)
