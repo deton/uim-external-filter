@@ -335,21 +335,21 @@
   (im-commit-raw pc))
 
 (define (external-filter-show-candwin pc candstr split? undo-str)
-  (let* ((cands
+  (let ((cands
           (if split?
             (filter
               (lambda (x)
                 (not (string=? x "")))
               (string-split candstr "\n"))
-            (list candstr)))
-         (commit
-          (lambda (pc idx)
-            (external-filter-deactivate-candwin pc)
-            (external-filter-commit pc (list-ref cands idx) undo-str))))
+            (list candstr))))
+    (define (commit pc idx)
+      (external-filter-deactivate-candwin pc)
+      (external-filter-commit pc (list-ref cands idx) undo-str))
     (external-filter-context-set-set-candidate-index-handler! pc commit)
     (external-filter-context-set-get-candidate-handler! pc
       (lambda (pc idx accel-enum-hint)
-        (list (list-ref cands idx) (number->string idx) "")))
+        (let ((idx-in-page (remainder idx external-filter-nr-candidate-max)))
+          (list (list-ref cands idx) (number->string idx-in-page) ""))))
     (external-filter-context-set-key-press-handler! pc
       (lambda (pc key key-state)
         (cond
@@ -360,9 +360,14 @@
             (external-filter-deactivate-candwin pc)
             (external-filter-show-candwin pc candstr (not split?) undo-str)
             #t)
-          ((and (ichar-numeric? key)
-                (< (numeric-ichar->integer key) (length cands)))
-            (commit pc (numeric-ichar->integer key))
+          ((ichar-numeric? key)
+            (let* ((idx-in-page (numeric-ichar->integer key))
+                   (page (quotient (external-filter-context-cand-index pc)
+                                   external-filter-nr-candidate-max))
+                   (idx (+ (* page external-filter-nr-candidate-max)
+                           idx-in-page)))
+              (if (< idx (external-filter-context-nr-cands pc))
+                (commit pc idx)))
             #t)
           (else
             #f))))
