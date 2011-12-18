@@ -309,16 +309,6 @@
       (let ((clip (external-filter-acquire-text pc 'clipboard)))
         (launch-and-show pc cmd op (if (string? clip) clip "") "")))))
 
-;;; temporarily register filter command from selection
-(define (external-filter-register pc key)
-  (let ((sym (external-filter-command-symbol key))
-        (str (external-filter-acquire-text pc 'selection)))
-    (if (string? str)
-      (begin
-        (set-symbol-value! sym str)
-        (external-filter-key-command-alist-update))
-      (external-filter-commit pc (symbol-value sym) ""))))
-
 (define (external-filter-commit pc commit-str undo-str)
   (define (count-char str)
     (string-length
@@ -415,3 +405,50 @@
           (im-delete-text pc 'primary 'cursor len 0))
         (if (not (string=? str ""))
           (im-commit pc str))))))
+
+;;; register and save filter command from selection
+(define (external-filter-register pc key)
+  (let ((sym (external-filter-command-symbol key))
+        (str (external-filter-acquire-text pc 'selection)))
+    (if (string? str)
+      (begin
+        (set-symbol-value! sym str)
+        (external-filter-key-command-alist-update)
+        (external-filter-save-custom-value pc sym str))
+      (external-filter-commit pc (symbol-value sym) ""))))
+
+(define (external-filter-save-custom-value pc custom-symbol custom-value)
+  (define (write-file filename lines)
+    (call-with-open-file-port
+      (file-open filename (file-open-flags-number '($O_WRONLY)) 0)
+      (lambda (port)
+        (let loop ((lines lines))
+          (if (pair? lines)
+            (begin
+              (file-write-sexp (car lines) port)
+              (file-newline port)
+              (loop (cdr lines))))))))
+  (define (read-file filename)
+    (call-with-open-file-port
+      (file-open filename (file-open-flags-number '($O_RDONLY)) 0)
+      (lambda (port)
+        (let loop ((line (file-read-line port))
+                   (lines '()))
+          (if (or (not line) (eof-object? line))
+              (reverse lines)
+              (loop (file-read-line port)
+                (cons (read-from-string line) lines)))))))
+  (and-let* ((filename
+              (string-append (or (home-directory (user-name)) "")
+                "/.uim.d/customs/custom-external-filter.scm"))
+             (lines (read-file filename))
+             (updated-lines
+              (map
+                (lambda (x)
+                  (if (eq? (cadr x) custom-symbol)
+                    (list 'define custom-symbol custom-value)
+                    x))
+                lines)))
+    (if (pair? updated-lines)
+      (write-file filename updated-lines))))
+      ;; XXX: newly create if custom file does not exist
