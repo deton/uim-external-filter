@@ -299,7 +299,8 @@
           ((candwin)
             (external-filter-show-candwin pc res #f))
           ((candwin-split)
-            (external-filter-show-candwin pc res #t))))))
+            (external-filter-show-candwin pc res #t)))
+        (external-filter-deactivate-candwin pc))))
   (let ((cmd (car cmd-op))
         (op (cadr cmd-op))
         (str (external-filter-acquire-text pc 'selection)))
@@ -324,6 +325,7 @@
       (with-char-codec external-filter-encoding
         (lambda ()
           (%%string-reconstruct! (string-copy str))))))
+  (external-filter-deactivate-candwin pc)
   (external-filter-context-set-undo-str! pc
     (if (string? undo-str) undo-str ""))
   (external-filter-context-set-undo-len! pc (count-char commit-str))
@@ -334,6 +336,7 @@
   (im-commit-raw pc))
 
 (define (external-filter-show-candwin pc candstr split?)
+  (external-filter-deactivate-candwin pc)
   (let ((cands
           (if split?
             (filter
@@ -345,7 +348,6 @@
       ;; acquire text again because selection may be changed
       ;; after showing candidate window.
       (let ((undo-str (external-filter-acquire-text pc 'selection)))
-        (external-filter-deactivate-candwin pc)
         (external-filter-commit pc
           (list-ref cands idx)
           (if (string? undo-str) undo-str ""))))
@@ -361,7 +363,6 @@
             (commit pc (external-filter-context-cand-index pc))
             #t)
           ((external-filter-split-toggle-key? key key-state)
-            (external-filter-deactivate-candwin pc)
             (external-filter-show-candwin pc candstr (not split?))
             #t)
           ((ichar-numeric? key)
@@ -379,9 +380,9 @@
 
 (define (external-filter-help pc)
   (define (commit pc idx)
-    (external-filter-deactivate-candwin pc)
     (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
       (external-filter-launch pc (cdr key-cmd))))
+  (external-filter-deactivate-candwin pc)
   (external-filter-context-set-set-candidate-index-handler! pc commit)
   (external-filter-context-set-get-candidate-handler! pc
     (lambda (pc idx accel-enum-hint)
