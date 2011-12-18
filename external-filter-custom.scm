@@ -61,19 +61,19 @@
   (N_ "filter command for key d")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-e "look $(read a; echo $a)"
+(define-custom 'external-filter-command-e ";;look $(read a; echo $a)"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key e")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-f ""
+(define-custom 'external-filter-command-f ";;ls ~"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key f")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-g ""
+(define-custom 'external-filter-command-g "python -mjson.tool"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key g")
