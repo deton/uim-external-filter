@@ -386,7 +386,14 @@
   (external-filter-context-set-get-candidate-handler! pc
     (lambda (pc idx accel-enum-hint)
       (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
-        (list (cadr key-cmd) (charcode->string (car key-cmd)) ""))))
+        (list
+          (string-append
+            (case (list-ref key-cmd 2)
+              ((commit) "")
+              ((candwin) ";")
+              ((candwin-split) ";;"))
+            (list-ref key-cmd 1))
+          (charcode->string (car key-cmd)) ""))))
   (external-filter-context-set-key-press-handler! pc
     (lambda (pc key key-state)
       (cond
