@@ -146,7 +146,8 @@
               (let ((key-cmd (assv key external-filter-key-command-alist)))
                 (if key-cmd
                   (external-filter-launch pc (cdr key-cmd)))))
-            ((ichar-upper-case? key)
+            ((and external-filter-enable-register?
+                  (ichar-upper-case? key))
               (external-filter-register pc (ichar-downcase key)))
             (else
               (external-filter-commit-raw pc))))))))
