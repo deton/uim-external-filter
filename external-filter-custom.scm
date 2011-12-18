@@ -49,19 +49,19 @@
   (N_ "filter command for key b")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-c "sed -e 's/^/> /'"
+(define-custom 'external-filter-command-c "nkf -w -f | sed -e 's/^/> /'"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key c")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-d "awk 'BEGIN{print \"<blockquote>\"}{print}END{print \"</blockquote>\"}'"
+(define-custom 'external-filter-command-d "sed -e '1i\\\n<blockquote>' -e '$a\\\n</blockquote>'"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key d")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-e ""
+(define-custom 'external-filter-command-e "look $(read a; echo $a)"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key e")
