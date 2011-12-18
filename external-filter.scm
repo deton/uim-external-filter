@@ -146,8 +146,7 @@
               (let ((key-cmd (assv key external-filter-key-command-alist)))
                 (if key-cmd
                   (external-filter-launch pc (cdr key-cmd)))))
-            ((and external-filter-enable-register?
-                  (ichar-upper-case? key))
+            ((ichar-upper-case? key)
               (external-filter-register pc (ichar-downcase key)))
             (else
               (external-filter-commit-raw pc))))))))
@@ -437,7 +436,8 @@
 (define (external-filter-register pc key)
   (let ((sym (external-filter-command-symbol key))
         (str (external-filter-acquire-text pc 'selection)))
-    (if (string? str)
+    (if (and external-filter-enable-register?
+             (string? str))
       (let* ((len (string-length str))
              (str-trim (if (string=? (substring str (- len 1) len) "\n")
                           (substring str 0 (- len 1))
@@ -445,7 +445,8 @@
         (set-symbol-value! sym str-trim)
         (external-filter-key-command-alist-update)
         (external-filter-save-custom-value pc sym str-trim))
-      (external-filter-commit pc (symbol-value sym) ""))))
+      (external-filter-commit pc (symbol-value sym)
+        (if (string? str) str "")))))
 
 (define (external-filter-save-custom-value pc custom-symbol custom-value)
   (define (write-file filename lines)
