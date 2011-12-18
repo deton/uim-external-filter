@@ -42,61 +42,25 @@
   (string->symbol
     (string-append "external-filter-command-" (charcode->string key))))
 
-;; string-to-list in deprecated-util.scm with my encoding and without reverse
-(define (external-filter-string-to-list s)
-  (with-char-codec external-filter-encoding
-    (lambda ()
-      (map! (lambda (c)
-              (let ((str (list->string (list c))))
-                (with-char-codec "ISO-8859-1"
-                  (lambda ()
-                    (%%string-reconstruct! str)))))
-            (string->list s)))))
-
 (define (external-filter-key-command-alist-update)
-  ;; "\\n"->"\n", "\\""->"\"", "\\\\"->"\\"
-  (define (unescape-cmd cmd)
-    (let loop ((src (external-filter-string-to-list cmd))
-               (res '())
-               (prev-esc? #f))
-      (if (null? src)
-        (reverse
-          (if prev-esc?
-            (cons "\\" res)
-            res))
-        (let ((c (car src)))
-          (if prev-esc?
-            (cond
-              ((string=? c "n")
-                (loop (cdr src) (cons "\n" res) #f))
-              ((string=? c "\\")
-                (loop (cdr src) (cons "\\" res) #f))
-              ((string=? c "\"")
-                (loop (cdr src) (cons "\"" res) #f))
-              (else
-                (loop (cdr src) (cons c (cons "\\" res)) #f)))
-            (if (string=? c "\\")
-              (loop (cdr src) res #t)
-              (loop (cdr src) (cons c res) #f)))))))
   (define (parse-cmd cmd)
-    (let ((len (length cmd)))
+    (let ((len (string-length cmd)))
       (cond
         ((and (> len 2)
-              (string=? (car cmd) ";")
-              (string=? (cadr cmd) ";"))
-          (list (apply string-append (cddr cmd)) 'candwin-split))
+              (string=? (substring cmd 0 2) ";;"))
+          (list (substring cmd 2 (string-length cmd)) 'candwin-split))
         ((and (> len 1)
-              (string=? (car cmd) ";"))
-          (list (apply string-append (cdr cmd)) 'candwin))
+              (string=? (substring cmd 0 1) ";"))
+          (list (substring cmd 1 (string-length cmd)) 'candwin))
         (else
-          (list (apply string-append cmd) 'commit)))))
+          (list cmd 'commit)))))
   (set! external-filter-key-command-alist
     (append
       (filter-map
         (lambda (x)
           (let ((cmd (symbol-value (external-filter-command-symbol x))))
             (and (not (string=? cmd ""))
-                 (cons x (parse-cmd (unescape-cmd cmd))))))
+                 (cons x (parse-cmd cmd)))))
         (iota 26 (char->integer #\a))))))
 
 (define external-filter-context-rec-spec
@@ -362,7 +326,18 @@
   (im-commit-raw pc))
 
 (define (external-filter-limit-cand-length str)
-  (let* ((strlist (external-filter-string-to-list str))
+  ;; string-to-list in deprecated-util.scm with my encoding and without reverse
+  (define my-string-to-list
+    (lambda (s)
+      (with-char-codec external-filter-encoding
+        (lambda ()
+          (map! (lambda (c)
+                  (let ((str (list->string (list c))))
+                    (with-char-codec "ISO-8859-1"
+                      (lambda ()
+                        (%%string-reconstruct! str)))))
+                (string->list s))))))
+  (let* ((strlist (my-string-to-list str))
          (lim (if (> (length strlist)
                      external-filter-string-length-max-on-candwin)
                 (append
