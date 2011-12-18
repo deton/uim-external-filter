@@ -79,7 +79,7 @@
   (N_ "filter command for key g")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-h ""
+(define-custom 'external-filter-command-h "date"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key h")
