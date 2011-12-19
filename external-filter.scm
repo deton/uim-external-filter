@@ -143,6 +143,8 @@
               (external-filter-start-input pc))
             ((external-filter-redo-key? key key-state)
               (external-filter-redo pc))
+            ((external-filter-paste-last-command-key? key key-state)
+              (external-filter-paste-last-command pc))
             ((external-filter-help-key? key key-state)
               (external-filter-help pc))
             ((external-filter-undo-key? key key-state)
@@ -571,3 +573,11 @@
         (ustr-whole-seq
           (external-filter-context-ustr-prev pc))))
     #f))
+
+(define (external-filter-paste-last-command pc)
+  (let ((sel (external-filter-acquire-text pc 'selection)))
+    (external-filter-commit pc
+      (apply string-append
+        (ustr-whole-seq
+          (external-filter-context-ustr-prev pc)))
+      (if (string? sel) sel ""))))

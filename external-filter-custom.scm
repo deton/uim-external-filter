@@ -31,6 +31,12 @@
   (N_ "[external-filter] redo last input command")
   (N_ "long description will be here"))
 
+(define-custom 'external-filter-paste-last-command-key '("<IgnoreShift>>")
+  '(external-filter)
+  '(key)
+  (N_ "[external-filter] paste last input command")
+  (N_ "long description will be here"))
+
 (define-custom 'external-filter-help-key '("<IgnoreShift>?")
   '(external-filter)
   '(key)
