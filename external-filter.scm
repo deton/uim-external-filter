@@ -151,7 +151,7 @@
             ((ichar-lower-case? key)
               (let ((key-cmd (assv key external-filter-key-command-alist)))
                 (if key-cmd
-                  (external-filter-launch pc (cdr key-cmd)))))
+                  (external-filter-launch pc (cdr key-cmd) #f))))
             ((ichar-upper-case? key)
               (external-filter-register pc (ichar-downcase key)))
             (else
@@ -218,7 +218,7 @@
     (and (pair? latter)
          (car latter))))
 
-(define (external-filter-launch pc cmd-op)
+(define (external-filter-launch pc cmd-op sel)
   ;; XXX: process-io without parent reading ret from child to avoid error:
   ;;   Error: in >: integer required but got: #f
   ;; (ex: when cmd is "ls", result of ls is read by parent that is not number)
@@ -309,7 +309,7 @@
         (external-filter-deactivate-candwin pc))))
   (let ((cmd (car cmd-op))
         (op (cadr cmd-op))
-        (str (external-filter-acquire-text pc 'selection)))
+        (str (or sel (external-filter-acquire-text pc 'selection))))
     (if (string? str)
       (launch-and-show pc cmd op str str)
       (let ((clip (external-filter-acquire-text pc 'clipboard)))
@@ -399,7 +399,7 @@
 (define (external-filter-help pc)
   (define (commit pc idx)
     (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
-      (external-filter-launch pc (cdr key-cmd))))
+      (external-filter-launch pc (cdr key-cmd) #f)))
   (external-filter-deactivate-candwin pc)
   (external-filter-context-set-set-candidate-index-handler! pc commit)
   (external-filter-context-set-get-candidate-handler! pc
@@ -492,7 +492,8 @@
 
 (define (external-filter-start-input pc)
   (external-filter-deactivate-candwin pc)
-  (let ((ustr (external-filter-context-ustr pc)))
+  (let ((ustr (external-filter-context-ustr pc))
+        (sel (external-filter-acquire-text pc 'selection)))
     (define (update-preedit)
       (if (eq? (external-filter-context-key-press-handler pc) key-press-handler)
         (context-update-preedit pc
@@ -508,13 +509,21 @@
       (cond
         ((generic-commit-key? key key-state)
           (external-filter-context-set-key-press-handler! pc #f)
-          (external-filter-launch pc
-            (external-filter-parse-command-string
-              (apply string-append (ustr-whole-seq ustr))))
-          (ustr-clear! ustr))
+          (let ((cmd (apply string-append (ustr-whole-seq ustr))))
+            (ustr-clear! ustr)
+            (update-preedit)
+            ;; pass selection acquired before command input
+            ;; because selection is overwritten by preedit on Firefox.
+            (external-filter-launch pc
+              (external-filter-parse-command-string cmd)
+              sel)))
         ((generic-cancel-key? key key-state)
           (external-filter-context-set-key-press-handler! pc #f)
-          (ustr-clear! ustr))
+          (ustr-clear! ustr)
+          (if (string? sel)
+            (begin
+              (update-preedit)
+              (im-commit pc sel)))) ; for Firefox
         ((generic-backspace-key? key key-state)
           (ustr-cursor-delete-backside! ustr))
         ((generic-delete-key? key key-state)
