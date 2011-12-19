@@ -19,13 +19,13 @@
   (N_ "Number of candidates in candidate window at a time")
   (N_ "long description will be here."))
 
-(define-custom 'external-filter-start-input-key '("<IgnoreShift>:")
+(define-custom 'external-filter-start-command-input-key '("<IgnoreShift>:")
   '(external-filter)
   '(key)
   (N_ "[external-filter] start command input")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-redo-key '("<IgnoreShift>.")
+(define-custom 'external-filter-redo-last-command-key '("<IgnoreShift>.")
   '(external-filter)
   '(key)
   (N_ "[external-filter] redo last input command")

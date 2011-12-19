@@ -139,10 +139,10 @@
       (if (not handled?)
         (if (not (handle-for-candwin pc key key-state))
           (cond
-            ((external-filter-start-input-key? key key-state)
-              (external-filter-start-input pc))
-            ((external-filter-redo-key? key key-state)
-              (external-filter-redo pc))
+            ((external-filter-start-command-input-key? key key-state)
+              (external-filter-start-command-input pc))
+            ((external-filter-redo-last-command-key? key key-state)
+              (external-filter-redo-last-command pc))
             ((external-filter-paste-last-command-key? key key-state)
               (external-filter-paste-last-command pc))
             ((external-filter-help-key? key key-state)
@@ -496,7 +496,7 @@
                 lines)))))
     (write-file filename updated-lines)))
 
-(define (external-filter-start-input pc)
+(define (external-filter-start-command-input pc)
   (external-filter-deactivate-candwin pc)
   (let ((ustr (external-filter-context-ustr pc))
         (ustr-prev (external-filter-context-ustr-prev pc))
@@ -566,7 +566,7 @@
     (ustr-clear! ustr)
     (update-preedit)))
 
-(define (external-filter-redo pc)
+(define (external-filter-redo-last-command pc)
   (external-filter-launch pc
     (external-filter-parse-command-string
       (apply string-append
