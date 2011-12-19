@@ -31,6 +31,7 @@
 
 (require-extension (srfi 1 2 8))
 (require "i18n.scm")
+(require "ustr.scm")
 (require "process.scm")
 (require-custom "external-filter-custom.scm")
 
@@ -42,25 +43,26 @@
   (string->symbol
     (string-append "external-filter-command-" (charcode->string key))))
 
+(define (external-filter-parse-command-string cmd)
+  (let ((len (string-length cmd)))
+    (cond
+      ((and (> len 2)
+            (string=? (substring cmd 0 2) ";;"))
+        (list (substring cmd 2 (string-length cmd)) 'candwin-split))
+      ((and (> len 1)
+            (string=? (substring cmd 0 1) ";"))
+        (list (substring cmd 1 (string-length cmd)) 'candwin))
+      (else
+        (list cmd 'commit)))))
+
 (define (external-filter-key-command-alist-update)
-  (define (parse-cmd cmd)
-    (let ((len (string-length cmd)))
-      (cond
-        ((and (> len 2)
-              (string=? (substring cmd 0 2) ";;"))
-          (list (substring cmd 2 (string-length cmd)) 'candwin-split))
-        ((and (> len 1)
-              (string=? (substring cmd 0 1) ";"))
-          (list (substring cmd 1 (string-length cmd)) 'candwin))
-        (else
-          (list cmd 'commit)))))
   (set! external-filter-key-command-alist
     (append
       (filter-map
         (lambda (x)
           (let ((cmd (symbol-value (external-filter-command-symbol x))))
             (and (not (string=? cmd ""))
-                 (cons x (parse-cmd cmd)))))
+                 (cons x (external-filter-parse-command-string cmd)))))
         (iota 26 (char->integer #\a))))))
 
 (define external-filter-context-rec-spec
@@ -70,6 +72,7 @@
       (list 'key-press-handler #f)
       (list 'get-candidate-handler #f)
       (list 'set-candidate-index-handler #f)
+      (list 'ustr '())
       (list 'nr-cands 0)
       (list 'cand-index 0)
       (list 'undo-len 0)
@@ -80,6 +83,7 @@
 (define external-filter-context-new
   (lambda args
     (let ((pc (apply external-filter-context-new-internal args)))
+      (external-filter-context-set-ustr! pc (ustr-new '()))
       pc)))
 
 (define external-filter-init-handler
@@ -133,6 +137,8 @@
       (if (not handled?)
         (if (not (handle-for-candwin pc key key-state))
           (cond
+            ((external-filter-start-input-key? key key-state)
+              (external-filter-start-input pc))
             ((external-filter-help-key? key key-state)
               (external-filter-help pc))
             ((external-filter-undo-key? key key-state)
@@ -483,3 +489,55 @@
                 (list 'define custom-symbol custom-value)
                 lines)))))
     (write-file filename updated-lines)))
+
+(define (external-filter-start-input pc)
+  (external-filter-deactivate-candwin pc)
+  (let ((ustr (external-filter-context-ustr pc)))
+    (define (update-preedit)
+      (if (eq? (external-filter-context-key-press-handler pc) key-press-handler)
+        (context-update-preedit pc
+          (list
+            (cons preedit-underline ":!")
+            (cons preedit-underline
+              (apply string-append (ustr-former-seq ustr)))
+            (cons preedit-cursor "")
+            (cons preedit-underline
+              (apply string-append (ustr-latter-seq ustr)))))
+        (context-update-preedit pc '())))
+    (define (key-press-handler pc key key-state)
+      (cond
+        ((generic-commit-key? key key-state)
+          (external-filter-context-set-key-press-handler! pc #f)
+          (external-filter-launch pc
+            (external-filter-parse-command-string
+              (apply string-append (ustr-whole-seq ustr))))
+          (ustr-clear! ustr))
+        ((generic-cancel-key? key key-state)
+          (external-filter-context-set-key-press-handler! pc #f)
+          (ustr-clear! ustr))
+        ((generic-backspace-key? key key-state)
+          (ustr-cursor-delete-backside! ustr))
+        ((generic-delete-key? key key-state)
+          (ustr-cursor-delete-frontside! ustr))
+        ((generic-kill-key? key key-state)
+          (ustr-clear-latter! ustr))
+        ((generic-kill-backward-key? key key-state)
+          (ustr-clear-former! ustr))
+        ((generic-go-left-key? key key-state)
+          (ustr-cursor-move-backward! ustr))
+        ((generic-go-right-key? key key-state)
+          (ustr-cursor-move-forward! ustr))
+        ((generic-beginning-of-preedit-key? key key-state)
+          (ustr-cursor-move-beginning! ustr))
+        ((generic-end-of-preedit-key? key key-state)
+          (ustr-cursor-move-end! ustr))
+        ((or (symbol? key)
+             (and (modifier-key-mask key-state)
+                  (not (shift-key-mask key-state))))) ; ignore
+        (else
+          (ustr-insert-elem! ustr (charcode->string key))))
+      (update-preedit)
+      #t)
+    (external-filter-context-set-key-press-handler! pc key-press-handler)
+    (ustr-clear! ustr)
+    (update-preedit)))
