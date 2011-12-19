@@ -25,6 +25,12 @@
   (N_ "[external-filter] start command input")
   (N_ "long description will be here"))
 
+(define-custom 'external-filter-redo-key '("<IgnoreShift>.")
+  '(external-filter)
+  '(key)
+  (N_ "[external-filter] redo last input command")
+  (N_ "long description will be here"))
+
 (define-custom 'external-filter-help-key '("<IgnoreShift>?")
   '(external-filter)
   '(key)
@@ -41,6 +47,18 @@
   '(external-filter)
   '(key)
   (N_ "[external-filter] toggle split candidate")
+  (N_ "long description will be here"))
+
+(define-custom 'external-filter-go-up-key '("up" "<IgnoreCase><Control>p")
+  '(external-filter)
+  '(key)
+  (N_ "[external-filter] go up")
+  (N_ "long description will be here"))
+
+(define-custom 'external-filter-go-down-key '("down" "<IgnoreCase><Control>n")
+  '(external-filter)
+  '(key)
+  (N_ "[external-filter] go down")
   (N_ "long description will be here"))
 
 (define-custom 'external-filter-command-a "nkf -w -f"

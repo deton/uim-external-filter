@@ -73,6 +73,7 @@
       (list 'get-candidate-handler #f)
       (list 'set-candidate-index-handler #f)
       (list 'ustr '())
+      (list 'ustr-prev '())
       (list 'nr-cands 0)
       (list 'cand-index 0)
       (list 'undo-len 0)
@@ -84,6 +85,7 @@
   (lambda args
     (let ((pc (apply external-filter-context-new-internal args)))
       (external-filter-context-set-ustr! pc (ustr-new '()))
+      (external-filter-context-set-ustr-prev! pc (ustr-new '()))
       pc)))
 
 (define external-filter-init-handler
@@ -139,6 +141,8 @@
           (cond
             ((external-filter-start-input-key? key key-state)
               (external-filter-start-input pc))
+            ((external-filter-redo-key? key key-state)
+              (external-filter-redo pc))
             ((external-filter-help-key? key key-state)
               (external-filter-help pc))
             ((external-filter-undo-key? key key-state)
@@ -493,6 +497,7 @@
 (define (external-filter-start-input pc)
   (external-filter-deactivate-candwin pc)
   (let ((ustr (external-filter-context-ustr pc))
+        (ustr-prev (external-filter-context-ustr-prev pc))
         (sel (external-filter-acquire-text pc 'selection)))
     (define (update-preedit)
       (if (eq? (external-filter-context-key-press-handler pc) key-press-handler)
@@ -510,6 +515,7 @@
         ((generic-commit-key? key key-state)
           (external-filter-context-set-key-press-handler! pc #f)
           (let ((cmd (apply string-append (ustr-whole-seq ustr))))
+            (ustr-copy! ustr-prev ustr)
             (ustr-clear! ustr)
             (update-preedit)
             ;; pass selection acquired before command input
@@ -524,6 +530,13 @@
             (begin
               (update-preedit)
               (im-commit pc sel)))) ; for Firefox
+        ((or (external-filter-go-up-key? key key-state)
+             ;; exclude " " included in generic-next-candidate-key
+             (external-filter-go-down-key? key key-state))
+          ;; TODO: support input command history. currently swap only
+          (let ((ustr-tmp (ustr-dup ustr)))
+            (ustr-copy! ustr ustr-prev)
+            (ustr-copy! ustr-prev ustr-tmp)))
         ((generic-backspace-key? key key-state)
           (ustr-cursor-delete-backside! ustr))
         ((generic-delete-key? key key-state)
@@ -550,3 +563,11 @@
     (external-filter-context-set-key-press-handler! pc key-press-handler)
     (ustr-clear! ustr)
     (update-preedit)))
+
+(define (external-filter-redo pc)
+  (external-filter-launch pc
+    (external-filter-parse-command-string
+      (apply string-append
+        (ustr-whole-seq
+          (external-filter-context-ustr-prev pc))))
+    #f))
