@@ -7,12 +7,6 @@
                      external-filter-im-name-label
                      external-filter-im-short-desc)
 
-(define-custom 'external-filter-enable-register? #f
-  '(external-filter)
-  '(boolean)
-  (N_ "Enable registering filter command by upper case key")
-  (N_ "long description will be here."))
-
 (define-custom 'external-filter-string-length-max-on-candwin 80
   '(external-filter)
   '(integer 1 99)
