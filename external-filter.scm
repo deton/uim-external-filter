@@ -309,10 +309,12 @@
           ((commit)
             (external-filter-commit pc res undo-str))
           ((candwin)
-            (external-filter-show-candwin pc res #f))
+            (external-filter-show-candwin pc res #f sel))
           ((candwin-split)
-            (external-filter-show-candwin pc res #t)))
-        (external-filter-deactivate-candwin pc))))
+            (external-filter-show-candwin pc res #t sel)))
+        (begin
+          (if sel (im-commit pc sel)) ; restore selection string for Firefox
+          (external-filter-deactivate-candwin pc)))))
   (let ((cmd (car cmd-op))
         (op (cadr cmd-op))
         (str (or sel (external-filter-acquire-text pc 'selection))))
@@ -358,7 +360,7 @@
                 strlist)))
     (apply string-append lim)))
 
-(define (external-filter-show-candwin pc candstr split?)
+(define (external-filter-show-candwin pc candstr split? sel)
   (external-filter-deactivate-candwin pc)
   (let ((cands
           (if split?
@@ -386,8 +388,12 @@
           ((generic-commit-key? key key-state)
             (commit pc (external-filter-context-cand-index pc))
             #t)
+          ((generic-cancel-key? key key-state)
+            (if sel (im-commit pc sel)) ; restore selection string for Firefox
+            (external-filter-deactivate-candwin pc)
+            #t)
           ((external-filter-split-toggle-key? key key-state)
-            (external-filter-show-candwin pc candstr (not split?))
+            (external-filter-show-candwin pc candstr (not split?) sel)
             #t)
           ((ichar-numeric? key)
             (let* ((idx-in-page (numeric-ichar->integer key))
