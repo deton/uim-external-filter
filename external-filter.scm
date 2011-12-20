@@ -541,8 +541,8 @@
             (ustr-copy! ustr-prev ustr)
             (ustr-clear! ustr)
             (update-preedit)
-            ;; pass selection acquired before command input
-            ;; because selection is overwritten by preedit on Firefox.
+            ;; pass selection acquired before command input because selection
+            ;; is overwritten by preedit on Firefox or uim-qt4.
             (external-filter-context-set-selection-str! pc sel)
             (external-filter-launch pc
               (external-filter-parse-command-string cmd))))
