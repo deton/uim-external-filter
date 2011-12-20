@@ -376,7 +376,7 @@
     (define (commit pc idx)
       ;; acquire text again because selection may be changed
       ;; after showing candidate window.
-      (let ((undo-str (or sel (external-filter-acquire-text pc 'selection))))
+      (let ((undo-str (external-filter-acquire-text pc 'selection)))
         (external-filter-commit pc
           (list-ref cands idx)
           (if (string? undo-str) undo-str ""))))
@@ -408,8 +408,6 @@
               (if (< idx (external-filter-context-nr-cands pc))
                 (commit pc idx)))
             #t)
-          (sel  ; if there is selection string overwritten by preedit,
-            #t) ; ignore other keys.
           (else
             #f))))
     (external-filter-activate-candwin pc (length cands))))
