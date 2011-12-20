@@ -535,7 +535,8 @@
         ((or (external-filter-go-up-key? key key-state)
              ;; exclude " " included in generic-next-candidate-key
              (external-filter-go-down-key? key key-state))
-          ;; TODO: support input command history. currently swap only
+          ;; XXX: currently swap only.
+          ;;      support input command history? (switching IM clears history)
           (let ((ustr-tmp (ustr-dup ustr)))
             (ustr-copy! ustr ustr-prev)
             (ustr-copy! ustr-prev ustr-tmp)))
