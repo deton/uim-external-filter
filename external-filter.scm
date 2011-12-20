@@ -299,6 +299,7 @@
       (close-file-port oport)
       (let ((res (file-read-all iport)))
         (close-file-port iport)
+        (process-waitpid -1 0) ; avoid to make zombie
         (and (string? res)
              (not (string=? res ""))
              res))))
