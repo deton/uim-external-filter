@@ -74,6 +74,7 @@
       (list 'set-candidate-index-handler #f)
       (list 'ustr '())
       (list 'ustr-prev '())
+      (list 'selection-str #f) ; selection string overwritten by preedit
       (list 'nr-cands 0)
       (list 'cand-index 0)
       (list 'undo-len 0)
@@ -114,6 +115,11 @@
       ((not (external-filter-context-key-press-handler pc))
         #f) ; candwin deactivated
       ((generic-cancel-key? key key-state)
+        (let ((sel (external-filter-context-selection-str pc)))
+          (if sel
+            (begin
+              (im-commit pc sel) ; restore selection string for Firefox
+              (external-filter-context-set-selection-str! pc #f))))
         (external-filter-deactivate-candwin pc)
         #t)
       ((= (external-filter-context-nr-cands pc) 1)
@@ -157,7 +163,7 @@
             ((ichar-lower-case? key)
               (let ((key-cmd (assv key external-filter-key-command-alist)))
                 (if key-cmd
-                  (external-filter-launch pc (cdr key-cmd) #f))))
+                  (external-filter-launch pc (cdr key-cmd)))))
             ((ichar-upper-case? key)
               (external-filter-register pc (ichar-downcase key)))
             (else
@@ -224,7 +230,7 @@
     (and (pair? latter)
          (car latter))))
 
-(define (external-filter-launch pc cmd-op sel)
+(define (external-filter-launch pc cmd-op)
   ;; XXX: process-io without parent reading ret from child to avoid error:
   ;;   Error: in >: integer required but got: #f
   ;; (ex: when cmd is "ls", result of ls is read by parent that is not number)
@@ -310,15 +316,19 @@
           ((commit)
             (external-filter-commit pc res undo-str))
           ((candwin)
-            (external-filter-show-candwin pc res #f sel))
+            (external-filter-show-candwin pc res #f))
           ((candwin-split)
-            (external-filter-show-candwin pc res #t sel)))
-        (begin
-          (if sel (im-commit pc sel)) ; restore selection string for Firefox
+            (external-filter-show-candwin pc res #t)))
+        (let ((sel (external-filter-context-selection-str pc)))
+          (if sel
+            (begin
+              (im-commit pc sel) ; restore selection string for Firefox
+              (external-filter-context-set-selection-str! pc #f)))
           (external-filter-deactivate-candwin pc)))))
   (let ((cmd (car cmd-op))
         (op (cadr cmd-op))
-        (str (or sel (external-filter-acquire-text pc 'selection))))
+        (str (or (external-filter-context-selection-str pc)
+                 (external-filter-acquire-text pc 'selection))))
     (if (string? str)
       (launch-and-show pc cmd op str str)
       (let ((clip (external-filter-acquire-text pc 'clipboard)))
@@ -334,6 +344,7 @@
   (external-filter-context-set-undo-str! pc
     (if (string? undo-str) undo-str ""))
   (external-filter-context-set-undo-len! pc (count-char commit-str))
+  (external-filter-context-set-selection-str! pc #f)
   (im-commit pc commit-str))
 
 (define (external-filter-commit-raw pc)
@@ -364,7 +375,7 @@
                 strlist)))
     (apply string-append lim)))
 
-(define (external-filter-show-candwin pc candstr split? sel)
+(define (external-filter-show-candwin pc candstr split?)
   (external-filter-deactivate-candwin pc)
   (let ((cands
           (if split?
@@ -376,7 +387,8 @@
     (define (commit pc idx)
       ;; acquire text again because selection may be changed
       ;; after showing candidate window.
-      (let ((undo-str (external-filter-acquire-text pc 'selection)))
+      (let ((undo-str (or (external-filter-context-selection-str pc)
+                          (external-filter-acquire-text pc 'selection))))
         (external-filter-commit pc
           (list-ref cands idx)
           (if (string? undo-str) undo-str ""))))
@@ -392,12 +404,8 @@
           ((generic-commit-key? key key-state)
             (commit pc (external-filter-context-cand-index pc))
             #t)
-          ((generic-cancel-key? key key-state)
-            (if sel (im-commit pc sel)) ; restore selection string for Firefox
-            (external-filter-deactivate-candwin pc)
-            #t)
           ((external-filter-split-toggle-key? key key-state)
-            (external-filter-show-candwin pc candstr (not split?) sel)
+            (external-filter-show-candwin pc candstr (not split?))
             #t)
           ((ichar-numeric? key)
             (let* ((idx-in-page (numeric-ichar->integer key))
@@ -415,7 +423,7 @@
 (define (external-filter-help pc)
   (define (commit pc idx)
     (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
-      (external-filter-launch pc (cdr key-cmd) #f)))
+      (external-filter-launch pc (cdr key-cmd))))
   (external-filter-deactivate-candwin pc)
   (external-filter-context-set-set-candidate-index-handler! pc commit)
   (external-filter-context-set-get-candidate-handler! pc
@@ -451,13 +459,15 @@
       (begin
         (if (> len 0)
           (im-delete-text pc 'primary 'cursor len 0))
+        (external-filter-context-set-selection-str! pc #f)
         (if (not (string=? str ""))
           (im-commit pc str))))))
 
 ;;; register and save filter command from selection
 (define (external-filter-register pc key)
   (let ((sym (external-filter-command-symbol key))
-        (str (external-filter-acquire-text pc 'selection)))
+        (str (or (external-filter-context-selection-str pc)
+                 (external-filter-acquire-text pc 'selection))))
     (if (string? str)
       (let* ((len (string-length str))
              (str-trim (if (string=? (substring str (- len 1) len) "\n")
@@ -510,7 +520,8 @@
   (external-filter-deactivate-candwin pc)
   (let ((ustr (external-filter-context-ustr pc))
         (ustr-prev (external-filter-context-ustr-prev pc))
-        (sel (external-filter-acquire-text pc 'selection)))
+        (sel (or (external-filter-context-selection-str pc)
+                 (external-filter-acquire-text pc 'selection))))
     (define (update-preedit)
       (if (eq? (external-filter-context-key-press-handler pc) key-press-handler)
         (context-update-preedit pc
@@ -532,15 +543,16 @@
             (update-preedit)
             ;; pass selection acquired before command input
             ;; because selection is overwritten by preedit on Firefox.
+            (external-filter-context-set-selection-str! pc sel)
             (external-filter-launch pc
-              (external-filter-parse-command-string cmd)
-              sel)))
+              (external-filter-parse-command-string cmd))))
         ((generic-cancel-key? key key-state)
           (external-filter-context-set-key-press-handler! pc #f)
           (ustr-clear! ustr)
           (if (string? sel)
             (begin
               (update-preedit)
+              (external-filter-context-set-selection-str! pc #f)
               (im-commit pc sel)))) ; for Firefox
         ((or (external-filter-go-up-key? key key-state)
              ;; exclude " " included in generic-next-candidate-key
@@ -582,11 +594,11 @@
     (external-filter-parse-command-string
       (apply string-append
         (ustr-whole-seq
-          (external-filter-context-ustr-prev pc))))
-    #f))
+          (external-filter-context-ustr-prev pc))))))
 
 (define (external-filter-paste-last-command pc)
-  (let ((sel (external-filter-acquire-text pc 'selection)))
+  (let ((sel (or (external-filter-context-selection-str pc)
+                 (external-filter-acquire-text pc 'selection))))
     (external-filter-commit pc
       (apply string-append
         (ustr-whole-seq
