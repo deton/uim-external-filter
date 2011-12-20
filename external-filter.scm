@@ -134,37 +134,34 @@
         #f)))
   (if (ichar-control? key)
     (external-filter-commit-raw pc)
-    (let ((handler (external-filter-context-key-press-handler pc)))
-      (receive (handled? selection-str)
-        (if handler
-          (handler pc key key-state)
-          (values #f #f))
-        (if (not handled?)
-          (if (not (handle-for-candwin pc key key-state))
-            (cond
-              ((external-filter-start-command-input-key? key key-state)
-                (external-filter-start-command-input pc))
-              ((external-filter-redo-last-command-key? key key-state)
-                (external-filter-redo-last-command pc selection-str))
-              ((external-filter-paste-last-command-key? key key-state)
-                (external-filter-paste-last-command pc))
-              ((external-filter-help-key? key key-state)
-                (external-filter-help pc))
-              ((external-filter-undo-key? key key-state)
-                (external-filter-undo pc)
-                (external-filter-context-set-undo-str! pc #f))
-              ((or (symbol? key)
-                   (and (modifier-key-mask key-state)
-                        (not (shift-key-mask key-state))))
-                (external-filter-commit-raw pc))
-              ((ichar-lower-case? key)
-                (let ((key-cmd (assv key external-filter-key-command-alist)))
-                  (if key-cmd
-                    (external-filter-launch pc (cdr key-cmd) selection-str))))
-              ((ichar-upper-case? key)
-                (external-filter-register pc (ichar-downcase key)))
-              (else
-                (external-filter-commit-raw pc)))))))))
+    (let* ((handler (external-filter-context-key-press-handler pc))
+           (handled? (and handler (handler pc key key-state))))
+      (if (not handled?)
+        (if (not (handle-for-candwin pc key key-state))
+          (cond
+            ((external-filter-start-command-input-key? key key-state)
+              (external-filter-start-command-input pc))
+            ((external-filter-redo-last-command-key? key key-state)
+              (external-filter-redo-last-command pc))
+            ((external-filter-paste-last-command-key? key key-state)
+              (external-filter-paste-last-command pc))
+            ((external-filter-help-key? key key-state)
+              (external-filter-help pc))
+            ((external-filter-undo-key? key key-state)
+              (external-filter-undo pc)
+              (external-filter-context-set-undo-str! pc #f))
+            ((or (symbol? key)
+                 (and (modifier-key-mask key-state)
+                      (not (shift-key-mask key-state))))
+              (external-filter-commit-raw pc))
+            ((ichar-lower-case? key)
+              (let ((key-cmd (assv key external-filter-key-command-alist)))
+                (if key-cmd
+                  (external-filter-launch pc (cdr key-cmd) #f))))
+            ((ichar-upper-case? key)
+              (external-filter-register pc (ichar-downcase key)))
+            (else
+              (external-filter-commit-raw pc))))))))
 
 (define (external-filter-key-release-handler pc key state)
   (im-commit-raw pc))
@@ -390,14 +387,14 @@
         (cond
           ((generic-commit-key? key key-state)
             (commit pc (external-filter-context-cand-index pc))
-            (values #t #f))
+            #t)
           ((generic-cancel-key? key key-state)
             (if sel (im-commit pc sel)) ; restore selection string for Firefox
             (external-filter-deactivate-candwin pc)
-            (values #t #f))
+            #t)
           ((external-filter-split-toggle-key? key key-state)
             (external-filter-show-candwin pc candstr (not split?) sel)
-            (values #t #f))
+            #t)
           ((ichar-numeric? key)
             (let* ((idx-in-page (numeric-ichar->integer key))
                    (page (quotient (external-filter-context-cand-index pc)
@@ -406,9 +403,9 @@
                            idx-in-page)))
               (if (< idx (external-filter-context-nr-cands pc))
                 (commit pc idx)))
-            (values #t #f))
+            #t)
           (else
-            (values #f sel)))))
+            #f))))
     (external-filter-activate-candwin pc (length cands))))
 
 (define (external-filter-help pc)
@@ -437,9 +434,9 @@
       (cond
         ((generic-commit-key? key key-state)
           (commit pc (external-filter-context-cand-index pc))
-          (values #t #f))
+          #t)
         (else
-          (values #f #f)))))
+          #f))))
   (external-filter-activate-candwin pc
     (length external-filter-key-command-alist)))
 
@@ -571,18 +568,18 @@
         (else
           (ustr-insert-elem! ustr (charcode->string key))))
       (update-preedit)
-      (values #t #f))
+      #t)
     (external-filter-context-set-key-press-handler! pc key-press-handler)
     (ustr-clear! ustr)
     (update-preedit)))
 
-(define (external-filter-redo-last-command pc sel)
+(define (external-filter-redo-last-command pc)
   (external-filter-launch pc
     (external-filter-parse-command-string
       (apply string-append
         (ustr-whole-seq
           (external-filter-context-ustr-prev pc))))
-    sel))
+    #f))
 
 (define (external-filter-paste-last-command pc)
   (let ((sel (external-filter-acquire-text pc 'selection)))
