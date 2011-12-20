@@ -350,7 +350,10 @@
                     (with-char-codec "ISO-8859-1"
                       (lambda ()
                         (%%string-reconstruct! str)))))
-                (string->list s))))))
+                ;; if filter output is not UTF-8,
+                ;; Error: scm_charcodec_read_char: invalid char sequence
+                (guard (err (else '()))
+                  (string->list s)))))))
   (let* ((strlist (my-string-to-list str))
          (lim (if (> (length strlist)
                      external-filter-string-length-max-on-candwin)
