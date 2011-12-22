@@ -19,6 +19,12 @@
   (N_ "Number of candidates in candidate window at a time")
   (N_ "long description will be here."))
 
+(define-custom 'external-filter-switch-default-im-after-read #f
+  '(external-filter)
+  '(boolean)
+  (N_ "switch to default IM after commit of filter output")
+  (N_ "long description will be here."))
+
 (define-custom 'external-filter-start-command-input-key '("<IgnoreShift>:")
   '(external-filter)
   '(key)
@@ -41,6 +47,12 @@
   '(external-filter)
   '(key)
   (N_ "[external-filter] help")
+  (N_ "long description will be here"))
+
+(define-custom 'external-filter-switch-default-im-key '("<IgnoreShift>~")
+  '(external-filter)
+  '(key)
+  (N_ "[external-filter] switch to default IM")
   (N_ "long description will be here"))
 
 (define-custom 'external-filter-undo-key '("u")

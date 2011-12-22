@@ -156,6 +156,8 @@
             ((external-filter-undo-key? key key-state)
               (external-filter-undo pc)
               (external-filter-context-set-undo-str! pc #f))
+            ((external-filter-switch-default-im-key? key key-state)
+              (im-switch-im pc default-im-name))
             ((or (symbol? key)
                  (and (modifier-key-mask key-state)
                       (not (shift-key-mask key-state))))
