@@ -347,7 +347,9 @@
     (if (string? undo-str) undo-str ""))
   (external-filter-context-set-undo-len! pc (count-char commit-str))
   (external-filter-context-set-selection-str! pc #f)
-  (im-commit pc commit-str))
+  (im-commit pc commit-str)
+  (if external-filter-switch-default-im-after-commit
+    (im-switch-im pc default-im-name)))
 
 (define (external-filter-commit-raw pc)
   (external-filter-context-set-undo-str! pc #f)
