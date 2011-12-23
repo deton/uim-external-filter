@@ -506,6 +506,7 @@
               (loop (file-read-line port)
                 (cons (read-from-string line) lines)))))))
   (let* ((filename (custom-file-path 'external-filter))
+         ;; "~/.uim.d/customs/custom-external-filter.scm"
          (lines (or (read-file filename) '()))
          (updated-lines
           (let ((line (find (lambda (x) (eq? (cadr x) custom-symbol)) lines)))
