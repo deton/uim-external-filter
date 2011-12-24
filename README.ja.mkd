@@ -35,11 +35,11 @@ uim-external-filterは、セレクションのテキストに対し、
 + lookコマンドを使って補完(;;を付けることで、フィルタ出力を候補リストとして表示)
     ;;look $(read a; echo $a)
 
+  例: "tempora"
+![表示例](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
+
 + SKK形式辞書を検索して、交ぜ書き変換候補を表示
     ;;LANG=C grep "^$(read a; echo $a) " ~/lib/tcode/mazegaki.dic.utf8 | tr / '\n' | tail -n +2
-
-例: 「こう外」
-![表示例](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
 
 - ホームディレクトリにあるファイル名を選んで挿入
     ;;ls ~
@@ -137,6 +137,7 @@ lookコマンドを補完のために使う場合などを想定しています�
 
 * :      外部フィルタコマンドとして実行する文字列の入力を開始。改行入力で実行。
          (上カーソルやCtrl+pキーにより、前回入力した文字列を取得可能)
+* Ctrl+v クリップボードからコマンド入力中の文字列に対し貼り付け
 * .      前回:で入力した外部フィルタコマンドを再実行
 * >      前回:で入力した外部フィルタコマンドの文字列を貼り付け
          (A-Zキーでの登録用)
@@ -166,8 +167,8 @@ lookコマンドを補完のために使う場合などを想定しています�
 * 候補ウィンドウに一度に表示する候補数 (デフォルト: 10)
 * コミット後にデフォルトIMに切り替えるかどうか (デフォルト: #f)
 
-* :での外部フィルタコマンド入力中の上矢印キー (デフォルト: ("up" "Ctrl+p"))
-* :での外部フィルタコマンド入力中の下矢印キー (デフォルト: ("down" "Ctrl+n"))
+* :での外部フィルタコマンド入力中の上矢印キー (デフォルト: ("up" "<Control>p"))
+* :での外部フィルタコマンド入力中の下矢印キー (デフォルト: ("down" "<Control>n"))
 
 備考
 ====

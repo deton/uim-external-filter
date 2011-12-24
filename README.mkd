@@ -132,24 +132,25 @@ For filters for completion like look command.
 Key and function
 ================
 
-* :    start filter command input. execute filter on return key.
-       (You can get previous input by upper cursor key or Ctrl+p)
-* .    execute last filter command input by ':' key.
-* >    paste last filter command string input by ':' key.
-       (For registering by A-Z key)
-* a-z  execute assigned filter command on selection text.
-       If no text is selected, execute filter command on clipboard
-       and paste filter output.
-* A-Z  register selection text as filter command that is assigned to
-       corresponding lower case letter.
-       If no text is selected, paste filter command string assigned
-       to corresponding lower case letter.
-* ?    show list of filter commands registered.
-* ;    toggle whether filter output is split by newline
-       while pop-up window is shown.
-* 0-9  commit corresponding candidate while candidate window is shown.
-* u    undo last commit (for text area that does not have undo function).
-* ~    switch to default input method.
+* :       start filter command input. execute filter on return key.
+          (You can get previous input by upper cursor key or Ctrl+p)
+* Ctrl+v  paste from clipboard to command input.
+* .       execute last filter command input by ':' key.
+* >       paste last filter command string input by ':' key.
+          (For registering by A-Z key)
+* a-z     execute assigned filter command on selection text.
+          If no text is selected, execute filter command on clipboard
+          and paste filter output.
+* A-Z     register selection text as filter command that is assigned to
+          corresponding lower case letter.
+          If no text is selected, paste filter command string assigned
+          to corresponding lower case letter.
+* ?       show list of filter commands registered.
+* ;       toggle whether filter output is split by newline
+          while pop-up window is shown.
+* 0-9     commit corresponding candidate while candidate window is shown.
+* u       undo last commit (for text area that does not have undo function).
+* ~       switch to default input method.
 
 Customization
 =============
@@ -162,13 +163,13 @@ external-filter is customizable by uim-pref-gtk or uim-pref-qt4.
 * switch to default IM after commit (default: #f)
 
 * key to start filter command input (default: ":")
+* key to paste from clipboard to command input (default: "<Control>v")
 * key to redo last input command (default: ".")
 * key to paste last input command (default: ">")
 * key to show help (default: "?")
 * key to toggle split candidate (default: ";")
-* key to go up while filter command input by ':' key (default: ("up" "Ctrl+p"))
-* key to go down while filter command input by ':' key
-  (default: ("down" "Ctrl+n"))
+* key to go up while filter command input by ':' key (default: ("up" "<Control>p"))
+* key to go down while filter command input by ':' key (default: ("down" "<Control>n"))
 * key to undo last commit (default: "u")
 * key to switch to default IM (default: "~")
 
