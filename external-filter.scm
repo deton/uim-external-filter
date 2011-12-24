@@ -537,6 +537,14 @@
             (cons preedit-underline
               (apply string-append (ustr-latter-seq ustr)))))
         (context-update-preedit pc '())))
+    (define (cancel-command-input)
+      (external-filter-context-set-key-press-handler! pc #f)
+      (ustr-clear! ustr)
+      (if (string? sel)
+        (begin
+          (update-preedit)
+          (external-filter-context-set-selection-str! pc #f)
+          (im-commit pc sel)))) ; for Firefox
     (define (key-press-handler pc key key-state)
       (cond
         ((generic-commit-key? key key-state)
@@ -551,13 +559,7 @@
             (external-filter-launch pc
               (external-filter-parse-command-string cmd))))
         ((generic-cancel-key? key key-state)
-          (external-filter-context-set-key-press-handler! pc #f)
-          (ustr-clear! ustr)
-          (if (string? sel)
-            (begin
-              (update-preedit)
-              (external-filter-context-set-selection-str! pc #f)
-              (im-commit pc sel)))) ; for Firefox
+          (cancel-command-input))
         ((or (external-filter-go-up-key? key key-state)
              ;; exclude " " included in generic-next-candidate-key
              (external-filter-go-down-key? key key-state))
@@ -571,7 +573,9 @@
             (if (string? clip)
               (ustr-insert-seq! ustr (external-filter-string-to-list clip)))))
         ((generic-backspace-key? key key-state)
-          (ustr-cursor-delete-backside! ustr))
+          (if (ustr-empty? ustr)
+            (cancel-command-input)
+            (ustr-cursor-delete-backside! ustr)))
         ((generic-delete-key? key key-state)
           (ustr-cursor-delete-frontside! ustr))
         ((generic-kill-key? key key-state)
