@@ -355,22 +355,23 @@
   (external-filter-context-set-undo-str! pc #f)
   (im-commit-raw pc))
 
+;; string-to-list in deprecated-util.scm with my encoding and without reverse
+(define external-filter-string-to-list
+  (lambda (s)
+    (with-char-codec external-filter-encoding
+      (lambda ()
+        (map! (lambda (c)
+                (let ((str (list->string (list c))))
+                  (with-char-codec "ISO-8859-1"
+                    (lambda ()
+                      (%%string-reconstruct! str)))))
+              ;; if filter output is not UTF-8,
+              ;; Error: scm_charcodec_read_char: invalid char sequence
+              (guard (err (else '()))
+                (string->list s)))))))
+
 (define (external-filter-limit-cand-length str)
-  ;; string-to-list in deprecated-util.scm with my encoding and without reverse
-  (define my-string-to-list
-    (lambda (s)
-      (with-char-codec external-filter-encoding
-        (lambda ()
-          (map! (lambda (c)
-                  (let ((str (list->string (list c))))
-                    (with-char-codec "ISO-8859-1"
-                      (lambda ()
-                        (%%string-reconstruct! str)))))
-                ;; if filter output is not UTF-8,
-                ;; Error: scm_charcodec_read_char: invalid char sequence
-                (guard (err (else '()))
-                  (string->list s)))))))
-  (let* ((strlist (my-string-to-list str))
+  (let* ((strlist (external-filter-string-to-list str))
          (lim (if (> (length strlist)
                      external-filter-string-length-max-on-candwin)
                 (append
@@ -565,6 +566,10 @@
           (let ((ustr-tmp (ustr-dup ustr)))
             (ustr-copy! ustr ustr-prev)
             (ustr-copy! ustr-prev ustr-tmp)))
+        ((external-filter-command-input-paste-key? key key-state)
+          (let ((clip (external-filter-acquire-text pc 'clipboard)))
+            (if (string? clip)
+              (ustr-insert-seq! ustr (external-filter-string-to-list clip)))))
         ((generic-backspace-key? key key-state)
           (ustr-cursor-delete-backside! ustr))
         ((generic-delete-key? key key-state)

@@ -31,6 +31,12 @@
   (N_ "[external-filter] start command input")
   (N_ "long description will be here"))
 
+(define-custom 'external-filter-command-input-paste-key '("<IgnoreCase><Control>v")
+  '(external-filter)
+  '(key)
+  (N_ "[external-filter] paste from clipboard while command input")
+  (N_ "long description will be here"))
+
 (define-custom 'external-filter-redo-last-command-key '("<IgnoreShift>.")
   '(external-filter)
   '(key)
