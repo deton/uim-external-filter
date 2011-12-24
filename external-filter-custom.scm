@@ -97,7 +97,7 @@
   (N_ "filter command for key c")
   (N_ "long description will be here"))
 
-(define-custom 'external-filter-command-d "sed -e '1i\\\n<blockquote>' -e '$a\\\n</blockquote>'"
+(define-custom 'external-filter-command-d "echo '<blockquote>'; cat -; echo '</blockquote>'"
   '(external-filter)
   '(string ".*")
   (N_ "filter command for key d")

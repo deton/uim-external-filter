@@ -17,9 +17,7 @@ uim-external-filterは、セレクションのテキストに対し、
     nkf -w -f | sed -e 's/^/> /'
 
 + <blockquote>でくくる
-    sed -e '1i\
-    <blockquote>' -e '$a\
-    </blockquote>'
+    echo '<blockquote>'; cat -; echo '</blockquote>'
 
 + JSON文字列を整形
     python -mjson.tool
