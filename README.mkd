@@ -91,8 +91,8 @@ Switch to external-filter by uim-toolbar or IM switching key
 
 Select text and type ':' key and input filter command.
 
-Or select text and type lower case character [a-z].
-external-filter executes filter command that is assigned to the character.
+Or select text and type lower case letter [a-z].
+external-filter executes filter command assigned to the letter.
 
 If no text is selected, external-filter acquires text from clipboard
 and executes filter command.
@@ -106,8 +106,8 @@ You can register filter command by uim-pref-gtk or uim-pref-qt4.
 Group "external-filter" -> "filter command for key a".
 
 Or you can register filter command by selecting text on edit area
-and typing upper case character.  That filter command is assigned to
-corresponding lower case character.
+and typing upper case letter.  That filter command is assigned to
+corresponding lower case letter.
 
 Show filter output in popup window
 ----------------------------------
@@ -141,14 +141,14 @@ Key and function
        If no text is selected, execute filter command on clipboard
        and paste filter output.
 * A-Z  register selection text as filter command that is assigned to
-       corresponding lower case character.
-       If no text is selected, paste filter command string that is
-       assigned to corresponding lower case character.
+       corresponding lower case letter.
+       If no text is selected, paste filter command string assigned
+       to corresponding lower case letter.
 * ?    show list of filter commands registered.
 * ;    toggle whether filter output is splitted by newline
        while popup window is shown.
-* 0-9  paste corresponding candidate while candidate window is shown.
-* u    undo last file read (for text area that does not have undo funciton).
+* 0-9  commit corresponding candidate while candidate window is shown.
+* u    undo last commit (for text area that does not have undo funciton).
 * ~    switch to default input method.
 
 Customization
@@ -157,7 +157,7 @@ Customization
 external-filter is customizable by uim-pref-gtk or uim-pref-qt4.
 
 * Maximum length of candidate string on candidate window (default: 80)
-  (Characters over this length is shown as "...")
+  (Characters over this length are shown as "...")
 * Number of candidates in candidate window at a time (default: 10)
 * switch to default IM after commit (default: #f)
 
@@ -169,7 +169,7 @@ external-filter is customizable by uim-pref-gtk or uim-pref-qt4.
 * key to go up while filter command input by ':' key (default: ("up" "Ctrl+p"))
 * key to go down while filter command input by ':' key
   (default: ("down" "Ctrl+n"))
-* key to undo last read (default: "u")
+* key to undo last commit (default: "u")
 * key to switch to default IM (default: "~")
 
 * filter command for key a (default: "nkf -w -f")
