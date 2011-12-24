@@ -1,175 +1,208 @@
 uim-external-filter
 ===================
 
-uim-external-filterは、セレクションのテキストに対し、
-外部フィルタをかけた結果に置換する[uim](http://code.google.com/p/uim/)用IMです。
+uim-external-filter is an input method for [uim](http://code.google.com/p/uim/)
+which replaces selection text with output of external filter command.
 
-使用例
-------
+Example
+-------
 
-+ 文書整形
++ Text format
+    fmt
+  or
     nkf -w -f
 
-+ 文字数カウント(;を付けることで置換せずに結果をウィンドウ表示)
++ Count characters
+  (show output in popup window if filter command starts with ";")
     ;wc -lwmc
 
-+ 文書整形後、引用マークを行頭に付ける
++ Add quotation mark after text format
     nkf -w -f | sed -e 's/^/> /'
 
-+ <blockquote>でくくる
++ Enclose with <blockquote>
     echo '<blockquote>'; cat -; echo '</blockquote>'
 
-+ JSON文字列を整形
++ Pretty print for JSON
     python -mjson.tool
 
-+ ファイルに書き出してエディタを起動
++ Write selection text to file and launch editor
     cat - >~/aaa; leafpad ~/aaa >/dev/null &
 
-- ファイル内容を読み込み
+- Read file content
     cat ~/aaa
 
-ただし、ファイルの文字コードがUTF-8でない場合は、
-以下のようにUTF-8に変換する必要あり。
+  If encoding of file is not UTF-8, need to convert to UTF-8.
     nkf -w ~/aaa
 
-+ lookコマンドを使って補完(;;を付けることで、フィルタ出力を候補リストとして表示)
++ Completion using look command
+  (show output as candidate list in popup window if filter command starts
+   with ";;")
     ;;look $(read a; echo $a)
 
-+ SKK形式辞書を検索して、交ぜ書き変換候補を表示
++ Show Kana to Kanji conversion candidates using SKK format dictionary file
     ;;LANG=C grep "^$(read a; echo $a) " ~/lib/tcode/mazegaki.dic.utf8 | tr / '\n' | tail -n +2
 
 例: 「こう外」
-![表示例](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
+![screen capture](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
 
-- ホームディレクトリにあるファイル名を選んで挿入
+- Select and insert file name from home directory
     ;;ls ~
 
-- 現在の日時を挿入
+- Insert current date and time
     date
 
-- 明日の天気(神奈川県東部)を表示
+- Show tomorrow weather
     ;;lynx -display_charset=utf-8 -dump http://weather.yahoo.co.jp/weather/jp/14/4610.html | sed -ne '/明日の天気/,/降水確率/p'
 
-必要なもの
-==========
+Requirements
+============
 
-セレクションやクリップボード内のテキストを取得するため、
-uimのtext acquisition API(surrounding text API)を使うので、
-text acquisition APIに対応した以下のブリッジでのみ動作します。
+uim-external-filter uses uim text acquisition API (surrounding text API)
+to acquire selection or clipboard text.
+Uim text acquisition API is supported by following bridges.
 
   * uim-gtk
-  * uim-qt4 (uim-1.7.1ではlineeditのみ対応。textedit対応はtrunk r7266以降)
+  * uim-qt4 (lineedit only at uim-1.7.1. textedit is supported at trunk r7266)
   * uim-qt3
 
-なお、セレクション文字列を外部コマンドに渡す必要がなく、
-外部コマンドの出力結果のみを使用する場合(例:";;ls ~"や"date")は、
-上記以外のブリッジでも動作可能です。
+For filter commands which do not use standard input like ";;ls ~" or "date",
+other bridges are usable.
 
-インストール
-============
+Install
+=======
 
 ./install.sh
 
-準備
-====
+Setting
+=======
 
-uim-pref-gtkやuim-pref-qt4を起動し、
-「全体設定」→「使用可能にする入力方式」を編集し、
-"external-filter"を有効にしてください。
+From uim-pref-gtk or uim-pref-qt4 command,
+select "Global settings" -> "Enabled input methods" -> "Edit...",
+enable "external-filter".
 
-キーボードを使ってexternal-filter IMに切り替えるには、
-「ホットキーによる入力方式の一時切り替えを有効にする」を
-チェックしてください。
+To switch to external-filter by keyboard,
+check "Enable IM switching by hotkey" and edit "IM switching key".
 
-使用方法
-========
+Usage
+=====
 
-uim-toolbarや「一時切り替えキー」を使って、external-filter IM
-(アイコン: ![アイコン](https://github.com/deton/uim-external-filter/raw/master/pixmaps/external-filter.png))
-に切り替えます。
+Switch to external-filter by uim-toolbar or IM switching key
+(icon: ![icon](https://github.com/deton/uim-external-filter/raw/master/pixmaps/external-filter.png)).
 
-文字列を選択して、:キーを押して外部フィルタコマンドを入力後
-リターンキーを押すと、入力されたコマンドを実行します。
+Select text and type ':' key and input filter command.
 
-文字列を選択して、小文字アルファベットキーを押すと、
-各アルファベットに登録されている外部フィルタコマンドを実行します。
+Or select text and type lower case character [a-z].
+external-filter executes filter command that is assigned to the character.
 
-文字列が選択されていない場合は、クリップボード内の文字列に対して
-外部フィルタコマンドを適用します。
+If no text is selected, external-filter acquires text from clipboard
+and executes filter command.
 
-外部フィルタコマンドの指定方法
-==============================
+Specifying filter command
+=========================
 
-:キーを押した後、実行したい外部フィルタコマンドを入力してください。
+After typing ':' key, input filter command.
 
-よく使う外部フィルタコマンドをあらかじめ登録しておきたい場合は、
-uim-pref-gtkやuim-pref-qt4を起動し、
-グループexternal-filterの「filter command for key a」など、
-小文字アルファベットキーごとに外部フィルタコマンドを登録してください。
+You can register filter command by uim-pref-gtk or uim-pref-qt4.
+Group "external-filter" -> "filter command for key a".
 
-また、uim-prefを使わないでも、
-入力エリア内で登録したい外部フィルタコマンド文字列を入力・選択後、
-大文字アルファベットを押すことで、外部フィルタコマンドとして登録可能です。
-(小文字アルファベットに対応する外部フィルタコマンドとして登録されます)
+Or you can register filter command by selecting text on edit area
+and typing upper case character.  That filter command is assigned to
+corresponding lower case character.
 
-外部フィルタコマンドの出力を確認して貼り付けるための指定方法
-------------------------------------------------------------
+Show filter output in popup window
+----------------------------------
 
-登録された外部フィルタコマンド文字列が、
-;で始まっている場合、直接置換しないで、
-外部フィルタコマンドの出力をウィンドウに表示します。
+If filter command starts with ";",
+external-filter shows filter output in popup window
+instead of replacing selection text.
+You can commit the filter output by return key.
 
-wcコマンドの出力など、結果が知りたいだけで置換して欲しくない場合や、
-出力を確認してから貼り付けたい場合用です。
+For filters that you want to view output only like wc command or
+to check output before replacing selection text.
 
-外部フィルタコマンドの出力を候補リストとして使用するための指定方法
-------------------------------------------------------------------
+Show filter output as candidate list in popup window
+----------------------------------------------------
 
-登録された外部フィルタコマンド文字列が、
-;;で始まっている場合、
-外部フィルタコマンドの出力を改行で分割して、
-候補リストとしてウィンドウに表示します。
+If filter command starts with ";;",
+external-filter splits filter output by newline and shows as
+candidate list in popup window.
 
-lookコマンドを補完のために使う場合などを想定しています。
+For filters for completion like look command.
 
-キーと処理の対応
+Key and function
 ================
 
-* :      外部フィルタコマンドとして実行する文字列の入力を開始。改行入力で実行。
-         (上カーソルやCtrl+pキーにより、前回入力した文字列を取得可能)
-* .      前回:で入力した外部フィルタコマンドを再実行
-* >      前回:で入力した外部フィルタコマンドの文字列を貼り付け
-         (A-Zキーでの登録用)
-* a-z    選択文字列に対し、対応する外部フィルタコマンドを実行。
-         文字列が選択されていない場合は、クリップボード内の文字列に対して
-         外部フィルタコマンドを適用した結果を貼り付け。
-* A-Z    選択文字列を、小文字アルファベットにより実行される
-         外部フィルタコマンドとして登録。
-         文字列が選択されていない場合は、
-	 登録されている外部フィルタコマンド自身の文字列を貼り付け。
-* ?      登録されている外部フィルタコマンドのリストを表示
-* ;      外部フィルタコマンドの出力をウィンドウ表示している時に、
-         結果全体をひとまとまりで表示するか、
-         行単位で分割して候補リストとして表示するかを切り替え。
-* 0-9    候補リストが表示されている時に、対応する候補を選択して貼り付け。
-* u      直前の置換を取り消し(入力エリア側にアンドゥ機能が無い場合用)
-* ~      デフォルトのIMに切り替える
+* :    start filter command input. execute filter on return key.
+       (You can get previous input by upper cursor key or Ctrl+p)
+* .    execute last filter command input by ':' key.
+* >    paste last filter command string input by ':' key.
+       (For registering by A-Z key)
+* a-z  execute assigned filter command on selection text.
+       If no text is selected, execute filter command on clipboard
+       and paste filter output.
+* A-Z  register selection text as filter command that is assigned to
+       corresponding lower case character.
+       If no text is selected, paste filter command string that is
+       assigned to corresponding lower case character.
+* ?    show list of filter commands registered.
+* ;    toggle whether filter output is splitted by newline
+       while popup window is shown.
+* 0-9  paste corresponding candidate while candidate window is shown.
+* u    undo last file read (for text area that does not have undo funciton).
+* ~    switch to default input method.
 
-カスタマイズ項目
-================
+Customization
+=============
 
-上記のキーに加えて、以下の項目のカスタマイズが可能。
-ただし、現状ではA-Zと0-9は固定。
+external-filter is customizable by uim-pref-gtk or uim-pref-qt4.
 
-* 候補ウィンドウに表示する文字列の上限 (デフォルト: 80)
-  (この長さ以上の部分は"..."に置換)
-* 候補ウィンドウに一度に表示する候補数 (デフォルト: 10)
-* コミット後にデフォルトIMに切り替えるかどうか (デフォルト: #f)
+* Maximum length of candidate string on candidate window (default: 80)
+  (Characters over this length is shown as "...")
+* Number of candidates in candidate window at a time (default: 10)
+* switch to default IM after commit (default: #f)
 
-* :での外部フィルタコマンド入力中の上矢印キー (デフォルト: ("up" "Ctrl+p"))
-* :での外部フィルタコマンド入力中の下矢印キー (デフォルト: ("down" "Ctrl+n"))
+* key to start filter command input (default: ":")
+* key to redo last input command (default: ".")
+* key to paste last input command (default: ">")
+* key to show help (default: "?")
+* key to toggle split candidate (default: ";")
+* key to go up while filter command input by ':' key (default: ("up" "Ctrl+p"))
+* key to go down while filter command input by ':' key
+  (default: ("down" "Ctrl+n"))
+* key to undo last read (default: "u")
+* key to switch to default IM (default: "~")
 
-備考
-====
+* filter command for key a (default: "nkf -w -f")
+* filter command for key b (default: ";wc -lwmc")
+* filter command for key c (default: "nkf -w -f | sed -e 's/^/> /'")
+* filter command for key d
+  (default: "echo '<blockquote>'; cat -; echo '</blockquote>'")
+* filter command for key e (default: ";;look $(read a; echo $a)")
+* filter command for key f (default: ";;ls ~")
+* filter command for key g (default: "python -mjson.tool")
+* filter command for key h (default: "date")
+* filter command for key i (default: "")
+* filter command for key j (default: "")
+* filter command for key k (default: "")
+* filter command for key l (default: "")
+* filter command for key m (default: "")
+* filter command for key n (default: "")
+* filter command for key o (default: "")
+* filter command for key p (default: "")
+* filter command for key q (default: "")
+* filter command for key r (default: "")
+* filter command for key s (default: "")
+* filter command for key t (default: "")
+* filter command for key u (default: "")
+* filter command for key v (default: "")
+* filter command for key w (default: "")
+* filter command for key x (default: "")
+* filter command for key y (default: "")
+* filter command for key z (default: "")
 
-* 外部フィルタコマンドの結果はUTF-8で出力してください。
+Key assignments for A-Z and 0-9 are fixed.
+
+Remark
+======
+
+* Encoding of filter output must be UTF-8.
