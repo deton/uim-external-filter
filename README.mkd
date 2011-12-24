@@ -39,11 +39,11 @@ Example
    with ";;")
     ;;look $(read a; echo $a)
 
+  Example: "tempora"
+![screen capture](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
+
 + Show Kana to Kanji conversion candidates using SKK format dictionary file
     ;;LANG=C grep "^$(read a; echo $a) " ~/lib/tcode/mazegaki.dic.utf8 | tr / '\n' | tail -n +2
-
-例: 「こう外」
-![screen capture](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
 
 - Select and insert file name from home directory
     ;;ls ~
