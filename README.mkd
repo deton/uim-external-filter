@@ -207,3 +207,11 @@ Remark
 ======
 
 * Encoding of filter output must be UTF-8.
+
+See Also
+========
+
+* uim-external-editor https://github.com/deton/uim-external-editor
+* uim-wordcount https://github.com/deton/uim-wordcount
+* uim-japan-util https://github.com/deton/uim-japan-util
+* uim-fmt-ja https://github.com/deton/uim-fmt-ja

@@ -174,3 +174,11 @@ lookコマンドを補完のために使う場合などを想定しています�
 ====
 
 * 外部フィルタコマンドの結果はUTF-8で出力してください。
+
+関連
+====
+
+* uim-external-editor https://github.com/deton/uim-external-editor
+* uim-wordcount https://github.com/deton/uim-wordcount
+* uim-japan-util https://github.com/deton/uim-japan-util
+* uim-fmt-ja https://github.com/deton/uim-fmt-ja
