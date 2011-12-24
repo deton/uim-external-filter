@@ -13,7 +13,7 @@ Example
     nkf -w -f
 
 + Count characters
-  (show output in popup window if filter command starts with ";")
+  (show output in pop-up window if filter command starts with ";")
     ;wc -lwmc
 
 + Add quotation mark after text format
@@ -35,7 +35,7 @@ Example
     nkf -w ~/aaa
 
 + Completion using look command
-  (show output as candidate list in popup window if filter command starts
+  (show output as candidate list in pop-up window if filter command starts
    with ";;")
     ;;look $(read a; echo $a)
 
@@ -109,23 +109,23 @@ Or you can register filter command by selecting text on edit area
 and typing upper case letter.  That filter command is assigned to
 corresponding lower case letter.
 
-Show filter output in popup window
-----------------------------------
+Show filter output in pop-up window
+-----------------------------------
 
 If filter command starts with ";",
-external-filter shows filter output in popup window
+external-filter shows filter output in pop-up window
 instead of replacing selection text.
 You can commit the filter output by return key.
 
 For filters that you want to view output only like wc command or
 to check output before replacing selection text.
 
-Show filter output as candidate list in popup window
-----------------------------------------------------
+Show filter output as candidate list in pop-up window
+-----------------------------------------------------
 
 If filter command starts with ";;",
 external-filter splits filter output by newline and shows as
-candidate list in popup window.
+candidate list in pop-up window.
 
 For filters for completion like look command.
 
@@ -145,10 +145,10 @@ Key and function
        If no text is selected, paste filter command string assigned
        to corresponding lower case letter.
 * ?    show list of filter commands registered.
-* ;    toggle whether filter output is splitted by newline
-       while popup window is shown.
+* ;    toggle whether filter output is split by newline
+       while pop-up window is shown.
 * 0-9  commit corresponding candidate while candidate window is shown.
-* u    undo last commit (for text area that does not have undo funciton).
+* u    undo last commit (for text area that does not have undo function).
 * ~    switch to default input method.
 
 Customization
