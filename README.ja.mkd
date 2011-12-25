@@ -8,47 +8,61 @@ uim-external-filterは、セレクションのテキストに対し、
 ------
 
 + 文書整形
-    nkf -w -f
+
+        nkf -w -f
 
 + 文字数カウント(;を付けることで置換せずに結果をウィンドウ表示)
-    ;wc -lwmc
+
+        ;wc -lwmc
 
 + 文書整形後、引用マークを行頭に付ける
-    nkf -w -f | sed -e 's/^/> /'
 
-+ <blockquote>でくくる
-    echo '<blockquote>'; cat -; echo '</blockquote>'
+        nkf -w -f | sed -e 's/^/> /'
+
++ `<blockquote>`でくくる
+
+        echo '<blockquote>'; cat -; echo '</blockquote>'
 
 + JSON文字列を整形
-    python -mjson.tool
+
+        python -mjson.tool
 
 + ファイルに書き出してエディタを起動
-    cat - >~/aaa; leafpad ~/aaa >/dev/null &
+
+        cat - >~/aaa; leafpad ~/aaa >/dev/null &
 
 - ファイル内容を読み込み
-    cat ~/aaa
 
-ただし、ファイルの文字コードがUTF-8でない場合は、
-以下のようにUTF-8に変換する必要あり。
-    nkf -w ~/aaa
+        cat ~/aaa
+
+    ただし、ファイルの文字コードがUTF-8でない場合は、
+    以下のようにUTF-8に変換する必要あり。
+
+        nkf -w ~/aaa
 
 + lookコマンドを使って補完(;;を付けることで、フィルタ出力を候補リストとして表示)
-    ;;look $(read a; echo $a)
 
-  例: "tempora"
-![表示例](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
+        ;;look $(read a; echo $a)
+
+    例: "tempora"
+
+    ![表示例](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
 
 + SKK形式辞書を検索して、交ぜ書き変換候補を表示
-    ;;LANG=C grep "^$(read a; echo $a) " ~/lib/tcode/mazegaki.dic.utf8 | tr / '\n' | tail -n +2
+
+        ;;LANG=C grep "^$(read a; echo $a) " ~/lib/tcode/mazegaki.dic.utf8 | tr / '\n' | tail -n +2
 
 - ホームディレクトリにあるファイル名を選んで挿入
-    ;;ls ~
+
+        ;;ls ~
 
 - 現在の日時を挿入
-    date
+
+        date
 
 - 明日の天気(神奈川県東部)を表示
-    ;;lynx -display_charset=utf-8 -dump http://weather.yahoo.co.jp/weather/jp/14/4610.html | sed -ne '/明日の天気/,/降水確率/p'
+
+        ;;lynx -display_charset=utf-8 -dump http://weather.yahoo.co.jp/weather/jp/14/4610.html | sed -ne '/明日の天気/,/降水確率/p'
 
 必要なもの
 ==========
@@ -169,8 +183,8 @@ lookコマンドを補完のために使う場合などを想定しています�
 * 候補ウィンドウに一度に表示する候補数 (デフォルト: 10)
 * コミット後にデフォルトIMに切り替えるかどうか (デフォルト: #f)
 
-* :での外部フィルタコマンド入力中の上矢印キー (デフォルト: ("up" "<Control>p"))
-* :での外部フィルタコマンド入力中の下矢印キー (デフォルト: ("down" "<Control>n"))
+* :での外部フィルタコマンド入力中の上矢印キー (デフォルト: ("up" "Ctrl+p"))
+* :での外部フィルタコマンド入力中の下矢印キー (デフォルト: ("down" "Ctrl+n"))
 
 備考
 ====

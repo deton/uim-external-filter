@@ -8,51 +8,67 @@ Example
 -------
 
 + Text format
-    fmt
-  or
-    nkf -w -f
+
+        fmt
+
+    or
+
+        nkf -w -f
 
 + Count characters
   (show output in pop-up window if filter command starts with ";")
-    ;wc -lwmc
+
+        ;wc -lwmc
 
 + Add quotation mark after text format
-    nkf -w -f | sed -e 's/^/> /'
 
-+ Enclose with <blockquote>
-    echo '<blockquote>'; cat -; echo '</blockquote>'
+        nkf -w -f | sed -e 's/^/> /'
+
++ Enclose with `<blockquote>`
+
+        echo '<blockquote>'; cat -; echo '</blockquote>'
 
 + Pretty print for JSON
-    python -mjson.tool
+
+        python -mjson.tool
 
 + Write selection text to file and launch editor
-    cat - >~/aaa; leafpad ~/aaa >/dev/null &
+
+        cat - >~/aaa; leafpad ~/aaa >/dev/null &
 
 - Read file content
-    cat ~/aaa
 
-  If encoding of file is not UTF-8, need to convert to UTF-8.
-    nkf -w ~/aaa
+        cat ~/aaa
+
+    If encoding of file is not UTF-8, need to convert to UTF-8.
+
+        nkf -w ~/aaa
 
 + Completion using look command
   (show output as candidate list in pop-up window if filter command starts
    with ";;")
-    ;;look $(read a; echo $a)
 
-  Example: "tempora"
-![screen capture](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
+        ;;look $(read a; echo $a)
+
+    Example: "tempora"
+
+    ![screen capture](https://github.com/deton/uim-external-filter/raw/master/external-filter-capture.png)
 
 + Show Kana to Kanji conversion candidates using SKK format dictionary file
-    ;;LANG=C grep "^$(read a; echo $a) " ~/lib/tcode/mazegaki.dic.utf8 | tr / '\n' | tail -n +2
+
+        ;;LANG=C grep "^$(read a; echo $a) " ~/lib/tcode/mazegaki.dic.utf8 | tr / '\n' | tail -n +2
 
 - Select and insert file name from home directory
-    ;;ls ~
+
+        ;;ls ~
 
 - Insert current date and time
-    date
+
+        date
 
 - Show tomorrow weather
-    ;;lynx -display_charset=utf-8 -dump http://weather.yahoo.co.jp/weather/jp/14/4610.html | sed -ne '/明日の天気/,/降水確率/p'
+
+        ;;lynx -display_charset=utf-8 -dump http://weather.yahoo.co.jp/weather/jp/14/4610.html | sed -ne '/明日の天気/,/降水確率/p'
 
 Requirements
 ============
@@ -168,13 +184,13 @@ external-filter is customizable by uim-pref-gtk or uim-pref-qt4.
 * switch to default IM after commit (default: #f)
 
 * key to start filter command input (default: ":")
-* key to paste from clipboard to command input (default: "<Control>v")
+* key to paste from clipboard to command input (default: "Ctrl+v")
 * key to redo last input command (default: ".")
 * key to paste last input command (default: ">")
 * key to show help (default: "?")
 * key to toggle split candidate (default: ";")
-* key to go up while filter command input by ':' key (default: ("up" "<Control>p"))
-* key to go down while filter command input by ':' key (default: ("down" "<Control>n"))
+* key to go up while filter command input by ':' key (default: ("up" "Ctrl+p"))
+* key to go down while filter command input by ':' key (default: ("down" "Ctrl+n"))
 * key to undo last commit (default: "u")
 * key to switch to default IM (default: "~")
 
@@ -182,7 +198,7 @@ external-filter is customizable by uim-pref-gtk or uim-pref-qt4.
 * filter command for key b (default: ";wc -lwmc")
 * filter command for key c (default: "nkf -w -f | sed -e 's/^/> /'")
 * filter command for key d
-  (default: "echo '<blockquote>'; cat -; echo '</blockquote>'")
+  (default: `"echo '<blockquote>'; cat -; echo '</blockquote>'"`)
 * filter command for key e (default: ";;look $(read a; echo $a)")
 * filter command for key f (default: ";;ls ~")
 * filter command for key g (default: "python -mjson.tool")
