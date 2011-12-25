@@ -57,6 +57,8 @@ Example
 Requirements
 ============
 
+  * uim trunk r7271 or newer.
+
 uim-external-filter uses uim text acquisition API (surrounding text API)
 to acquire selection or clipboard text.
 Uim text acquisition API is supported by following bridges.
@@ -106,28 +108,31 @@ You can register filter command by uim-pref-gtk or uim-pref-qt4.
 Group "external-filter" -> "filter command for key a".
 
 Or you can register filter command by selecting text on edit area
-and typing upper case letter.  That filter command is assigned to
-corresponding lower case letter.
+and typing upper case letter [A-Z].  That filter command is assigned
+to corresponding lower case letter.
 
 Show filter output in pop-up window
 -----------------------------------
+
+If you want to only view filter output like wc command or
+to check output before replacing selection text,
+start filter command with ";".
 
 If filter command starts with ";",
 external-filter shows filter output in pop-up window
 instead of replacing selection text.
 You can commit the filter output by return key.
 
-For filters that you want to view output only like wc command or
-to check output before replacing selection text.
-
 Show filter output as candidate list in pop-up window
 -----------------------------------------------------
+
+If you want to make candidate list from filter output and
+to select a candidate for completion like look command,
+start filter command with ";;".
 
 If filter command starts with ";;",
 external-filter splits filter output by newline and shows as
 candidate list in pop-up window.
-
-For filters for completion like look command.
 
 Key and function
 ================

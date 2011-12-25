@@ -53,6 +53,8 @@ uim-external-filterは、セレクションのテキストに対し、
 必要なもの
 ==========
 
+  * uim trunk r7271以降
+
 セレクションやクリップボード内のテキストを取得するため、
 uimのtext acquisition API(surrounding text API)を使うので、
 text acquisition APIに対応した以下のブリッジでのみ動作します。
