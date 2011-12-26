@@ -288,7 +288,7 @@
                  ;    (file-close pout-in)
                  ;    (file-close pin-out)
                  ;    #f)
-                 (cons pout-in pin-out)))))))
+                 (list pout-in pin-out pid)))))))
   ;; file-read-line without newline check.
   (define (file-read-all port)
     (let loop ((c (file-read-char port))
@@ -301,13 +301,15 @@
   (define (launch cmd str)
     (and-let*
       ((fds (my-process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
-       (iport (open-file-port (car fds)))
-       (oport (open-file-port (cdr fds))))
+       (iport (open-file-port (list-ref fds 0)))
+       (oport (open-file-port (list-ref fds 1)))
+       (pid (list-ref fds 2)))
       (file-display str oport)
       (close-file-port oport)
       (let ((res (file-read-all iport)))
         (close-file-port iport)
-        (process-waitpid -1 0) ; avoid to make zombie
+        ;; zombie cleanup. XXX: WNOHANG for avoiding block may leave zombie.
+        (process-waitpid pid (assq-cdr '$WNOHANG process-waitpid-options-alist))
         (and (string? res)
              (not (string=? res ""))
              res))))
