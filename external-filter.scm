@@ -96,7 +96,14 @@
       pc)))
 
 (define (external-filter-release-handler pc)
-  (external-filter-deactivate-candwin pc))
+  (external-filter-deactivate-candwin pc)
+  (let ((cleanup-zombie
+          (lambda ()
+            (process-waitpid -1
+              (assq-cdr '$WNOHANG process-waitpid-options-alist)))))
+    (let loop ((ret (cleanup-zombie)))
+      (if (> (car ret) 0)
+        (loop (cleanup-zombie))))))
 
 (define (external-filter-key-press-handler pc key key-state)
   (define (handle-for-candwin pc key key-state)
