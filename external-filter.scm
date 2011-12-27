@@ -192,6 +192,17 @@
       ;; else page changed by next/prev page button click
       )))
 
+(define (external-filter-focus-in-handler pc) #f)
+
+(define (external-filter-focus-out-handler pc)
+  (external-filter-context-set-key-press-handler! pc #f)
+  (external-filter-deactivate-candwin pc)
+  (context-update-preedit pc '())
+  (external-filter-context-set-selection-str! pc #f))
+
+(define external-filter-place-handler external-filter-focus-in-handler)
+(define external-filter-displace-handler external-filter-focus-out-handler)
+
 (define (external-filter-activate-candwin pc nr-cands)
   (external-filter-context-set-nr-cands! pc nr-cands)
   (im-activate-candidate-selector pc nr-cands external-filter-nr-candidate-max)
@@ -219,10 +230,10 @@
  external-filter-set-candidate-index-handler
  context-prop-activate-handler
  #f
- #f
- #f
- #f
- #f
+ external-filter-focus-in-handler
+ external-filter-focus-out-handler
+ external-filter-place-handler
+ external-filter-displace-handler
  )
 
 (define (external-filter-acquire-text pc id)
