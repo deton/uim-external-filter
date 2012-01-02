@@ -32,6 +32,7 @@
 (require-extension (srfi 1 2 8))
 (require "i18n.scm")
 (require "ustr.scm")
+(require "key.scm")
 (require "process.scm")
 (require-custom "external-filter-custom.scm")
 
@@ -407,11 +408,14 @@
       (lambda (x)
         (not (string=? x "")))
       (string-split str "\n")))
-  (define (split-cols rows)
-    (map
-      (lambda (row)
-        (string-split row "\t"))
-      rows))
+  ;; "cand\alabel\aannotation\asingle-key-predicate"
+  (define (split-cols row)
+    (let* ((lis (string-split row "\a"))
+           (key-pred (and (>= (length lis) 4)
+                          (list-ref lis 3))))
+      (if key-pred
+        (set-cdr! (cddr lis) (list (make-single-key-predicate key-pred))))
+      lis))
   (external-filter-deactivate-candwin pc)
   (let ((cands
           (case split
@@ -420,7 +424,7 @@
             ((candwin-split)
               (zip (split-rows candstr)))
             ((candwin-split-cols)
-              (split-cols (split-rows candstr))))))
+              (map split-cols (split-rows candstr))))))
     (define (commit pc idx)
       ;; acquire text again because selection may be changed
       ;; after showing candidate window.
@@ -444,7 +448,25 @@
           (list str label annotation))))
     (external-filter-context-set-key-press-handler! pc
       (lambda (pc key key-state)
+        (define (commit-by-label-key?)
+          (let* ((idx (external-filter-context-cand-index pc))
+                 (page (quotient idx external-filter-nr-candidate-max)))
+            (let loop ((i page)
+                       (cur-cands (drop cands page)))
+              (cond
+                ((or (null? cur-cands)
+                     (>= i (external-filter-context-nr-cands pc)))
+                  #f)
+                ((and (>= (length (car cur-cands)) 4)
+                      ((list-ref (car cur-cands) 3) key key-state))
+                  (commit pc i)
+                  #t)
+                (else
+                  (loop (inc i) (cdr cur-cands)))))))
         (cond
+          ((and (eq? split 'candwin-split-cols)
+                (commit-by-label-key?))
+            #t)
           ((generic-commit-key? key key-state)
             (commit pc (external-filter-context-cand-index pc))
             #t)
