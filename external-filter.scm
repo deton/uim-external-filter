@@ -46,6 +46,9 @@
 (define (external-filter-parse-command-string cmd)
   (let ((len (string-length cmd)))
     (cond
+      ((and (> len 3)
+            (string=? (substring cmd 0 3) ";;;"))
+        (list (substring cmd 3 (string-length cmd)) 'candwin-split-cols))
       ((and (> len 2)
             (string=? (substring cmd 0 2) ";;"))
         (list (substring cmd 2 (string-length cmd)) 'candwin-split))
@@ -337,10 +340,8 @@
         (case op
           ((commit)
             (external-filter-commit pc res undo-str))
-          ((candwin)
-            (external-filter-show-candwin pc res #f))
-          ((candwin-split)
-            (external-filter-show-candwin pc res #t)))
+          ((candwin candwin-split candwin-split-cols)
+            (external-filter-show-candwin pc res op)))
         (let ((sel (external-filter-context-selection-str pc)))
           (if sel
             (begin
@@ -400,29 +401,47 @@
                 strlist)))
     (apply string-append lim)))
 
-(define (external-filter-show-candwin pc candstr split?)
+(define (external-filter-show-candwin pc candstr split)
+  (define (split-rows str)
+    (filter
+      (lambda (x)
+        (not (string=? x "")))
+      (string-split str "\n")))
+  (define (split-cols rows)
+    (map
+      (lambda (row)
+        (string-split row "\t"))
+      rows))
   (external-filter-deactivate-candwin pc)
   (let ((cands
-          (if split?
-            (filter
-              (lambda (x)
-                (not (string=? x "")))
-              (string-split candstr "\n"))
-            (list candstr))))
+          (case split
+            ((candwin)
+              (list (list candstr)))
+            ((candwin-split)
+              (zip (split-rows candstr)))
+            ((candwin-split-cols)
+              (split-cols (split-rows candstr))))))
     (define (commit pc idx)
       ;; acquire text again because selection may be changed
       ;; after showing candidate window.
       (let ((undo-str (or (external-filter-context-selection-str pc)
                           (external-filter-acquire-text pc 'selection))))
         (external-filter-commit pc
-          (list-ref cands idx)
+          (car (list-ref cands idx))
           (if (string? undo-str) undo-str ""))))
     (external-filter-context-set-set-candidate-index-handler! pc commit)
     (external-filter-context-set-get-candidate-handler! pc
       (lambda (pc idx accel-enum-hint)
-        (let ((idx-in-page (remainder idx external-filter-nr-candidate-max))
-              (str (external-filter-limit-cand-length (list-ref cands idx))))
-          (list str (number->string idx-in-page) ""))))
+        (let* ((idx-in-page (remainder idx external-filter-nr-candidate-max))
+               (cand (list-ref cands idx))
+               (str (external-filter-limit-cand-length (car cand)))
+               (label (or (and (>= (length cand) 2)
+                               (list-ref cand 1))
+                          (number->string idx-in-page)))
+               (annotation (or (and (>= (length cand) 3)
+                                    (list-ref cand 2))
+                               "")))
+          (list str label annotation))))
     (external-filter-context-set-key-press-handler! pc
       (lambda (pc key key-state)
         (cond
@@ -430,7 +449,11 @@
             (commit pc (external-filter-context-cand-index pc))
             #t)
           ((external-filter-split-toggle-key? key key-state)
-            (external-filter-show-candwin pc candstr (not split?))
+            (external-filter-show-candwin pc candstr
+              (case split
+                ((candwin) 'candwin-split)
+                ((candwin-split) 'candwin-split-cols)
+                ((candwin-split-cols) 'candwin)))
             #t)
           ((ichar-numeric? key)
             (let* ((idx-in-page (numeric-ichar->integer key))
@@ -458,7 +481,8 @@
           (case (list-ref key-cmd 2)
             ((commit) "")
             ((candwin) ";")
-            ((candwin-split) ";;"))
+            ((candwin-split) ";;")
+            ((candwin-split-cols) ";;;"))
           (list-ref key-cmd 1)))
       (let ((key-cmd (list-ref external-filter-key-command-alist idx)))
         (list
