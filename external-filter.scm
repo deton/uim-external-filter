@@ -472,33 +472,36 @@
                  (page (quotient idx external-filter-nr-candidate-max))
                  (page-idx (* page external-filter-nr-candidate-max)))
             (let loop ((alist labelkey-alist))
-              (cond
-                ((null? alist)
-                  #f)
-                (((list-ref (car alist) 1) key key-state)
-                  (if (= (length (car alist)) 3) ; only one idx '(str pred idx)
-                    (commit pc (list-ref (car alist) 2))
-                    ;; two or more idx '(str pred idx0 idx1 idx2 ...)
-                    (let*
-                      ((idxes (cddr (car alist)))
-                       (page-idxes
-                        (find-tail (lambda (x) (>= x page-idx)) idxes))
-                       (next
-                        (cond
-                          ((memv idx idxes)
-                            => (lambda (x)
-                                (if (null? (cdr x))
-                                  (car idxes)
-                                  (cadr x))))
-                          ((pair? page-idxes)
-                            (car page-idxes))
-                          (else
-                            (car idxes)))))
-                      (external-filter-context-set-cand-index! pc next)
-                      (im-select-candidate pc next)))
-                  #t)
-                (else
-                  (loop (cdr alist)))))))
+              (if (null? alist)
+                #f
+                (let* ((key-pred-idxes (car alist))
+                       (pred (list-ref key-pred-idxes 1)))
+                  (cond
+                    ((and pred (pred key key-state))
+                      (if (= (length key-pred-idxes) 3)
+                        ;; only one idx '(str pred idx)
+                        (commit pc (list-ref key-pred-idxes 2))
+                        ;; two or more idx '(str pred idx0 idx1 idx2 ...)
+                        (let*
+                          ((idxes (cddr key-pred-idxes))
+                           (page-idxes
+                            (find-tail (lambda (x) (>= x page-idx)) idxes))
+                           (next
+                            (cond
+                              ((memv idx idxes)
+                                => (lambda (x)
+                                    (if (null? (cdr x))
+                                      (car idxes)
+                                      (cadr x))))
+                              ((pair? page-idxes)
+                                (car page-idxes))
+                              (else
+                                (car idxes)))))
+                          (external-filter-context-set-cand-index! pc next)
+                          (im-select-candidate pc next)))
+                      #t)
+                    (else
+                      (loop (cdr alist)))))))))
         (cond
           ((and (eq? split 'candwin-split-cols)
                 (commit-by-label-key?))
