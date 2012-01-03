@@ -410,21 +410,40 @@
       (string-split str "\n")))
   ;; "cand\alabel\aannotation\asingle-key-predicate"
   (define (split-cols row)
-    (let* ((lis (string-split row "\a"))
-           (key-pred (and (>= (length lis) 4)
-                          (list-ref lis 3))))
-      (if key-pred
-        (set-cdr! (cddr lis) (list (make-single-key-predicate key-pred))))
-      lis))
+    (string-split row "\a"))
+  ;; labelkey-alist: '((key-pred-str0 key-pred0 idx00 idx01 idx02 ...) ...)
+  (define (make-labelkey-alist alist cols idx)
+    (let* ((key-pred-str (and (>= (length cols) 4)
+                              (list-ref cols 3)))
+           (labelkey (and key-pred-str
+                          (assoc key-pred-str alist))))
+      (if labelkey
+        (begin
+          (set-cdr! labelkey (append! (cdr labelkey) (list idx)))
+          alist)
+        (cons
+          (list key-pred-str (make-single-key-predicate key-pred-str) idx)
+          alist))))
   (external-filter-deactivate-candwin pc)
-  (let ((cands
+  (let* ((cands
           (case split
             ((candwin)
               (list (list candstr)))
             ((candwin-split)
               (zip (split-rows candstr)))
             ((candwin-split-cols)
-              (map split-cols (split-rows candstr))))))
+              (map split-cols (split-rows candstr)))))
+         (labelkey-alist
+          (and (eq? split 'candwin-split-cols)
+               (let loop ((alist '())
+                          (cands cands)
+                          (idx 0))
+                (if (null? cands)
+                  alist
+                  (loop
+                    (make-labelkey-alist alist (car cands) idx)
+                    (cdr cands)
+                    (inc idx)))))))
     (define (commit pc idx)
       ;; acquire text again because selection may be changed
       ;; after showing candidate window.
@@ -450,19 +469,36 @@
       (lambda (pc key key-state)
         (define (commit-by-label-key?)
           (let* ((idx (external-filter-context-cand-index pc))
-                 (page (quotient idx external-filter-nr-candidate-max)))
-            (let loop ((i page)
-                       (cur-cands (drop cands page)))
+                 (page (quotient idx external-filter-nr-candidate-max))
+                 (page-idx (* page external-filter-nr-candidate-max)))
+            (let loop ((alist labelkey-alist))
               (cond
-                ((or (null? cur-cands)
-                     (>= i (external-filter-context-nr-cands pc)))
+                ((null? alist)
                   #f)
-                ((and (>= (length (car cur-cands)) 4)
-                      ((list-ref (car cur-cands) 3) key key-state))
-                  (commit pc i)
+                (((list-ref (car alist) 1) key key-state)
+                  (if (= (length (car alist)) 3) ; only one idx '(str pred idx)
+                    (commit pc (list-ref (car alist) 2))
+                    ;; two or more idx '(str pred idx0 idx1 idx2 ...)
+                    (let*
+                      ((idxes (cddr (car alist)))
+                       (page-idxes
+                        (find-tail (lambda (x) (>= x page-idx)) idxes))
+                       (next
+                        (cond
+                          ((memv idx idxes)
+                            => (lambda (x)
+                                (if (null? (cdr x))
+                                  (car idxes)
+                                  (cadr x))))
+                          ((pair? page-idxes)
+                            (car page-idxes))
+                          (else
+                            (car idxes)))))
+                      (external-filter-context-set-cand-index! pc next)
+                      (im-select-candidate pc next)))
                   #t)
                 (else
-                  (loop (inc i) (cdr cur-cands)))))))
+                  (loop (cdr alist)))))))
         (cond
           ((and (eq? split 'candwin-split-cols)
                 (commit-by-label-key?))
