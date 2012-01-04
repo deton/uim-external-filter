@@ -150,6 +150,25 @@ If filter command starts with ";;",
 external-filter splits filter output by newline and shows as
 candidate list in pop-up window.
 
+If you want to make candidate string, heading label, annotation
+and key to select the candidate from filter output,
+start filter command with ";;;".
+
+If filter command starts with ";;;",
+external-filter splits each line of filter output by "\a"(0x07)
+and use each part as candidate string, heading label, annotation
+and key to select the candidate.
+
+For example, following filter output shows candidate window
+like uim-wordcount.
+
+    ;;;wc -lwmc | awk '{
+        printf("%d\aline\anumber of newline characters.\al\n", $1);
+        printf("%d\aword\anumber of strings separated by white-space characters.\aw\n", $2);
+        printf("%d\achar\anumber of characters (includes white-space characters).\ac\n", $3);
+        printf("%d\abyte\anumber of bytes in UTF-8 encoding.\ab\n", $4);
+    }'
+
 Key and function
 ================
 
@@ -167,8 +186,12 @@ Key and function
           If no text is selected, paste filter command string assigned
           to corresponding lower case letter.
 * ?       show list of filter commands registered.
-* ;       toggle whether filter output is split by newline
-          while pop-up window is shown.
+* ;       switch following three modes while pop-up window is shown.
+    * no split.
+    * split filter output by newline and use each line as candidate.
+    * split filter output by newline and split each line by "\a"
+      and use each part as candidate string, heading label, annotation
+      and key to select the candidate.
 * 0-9     commit corresponding candidate while candidate window is shown.
 * u       undo last commit (for text area that does not have undo function).
 * ~       switch to default input method.
@@ -236,3 +259,16 @@ See Also
 * uim-wordcount https://github.com/deton/uim-wordcount
 * uim-japan-util https://github.com/deton/uim-japan-util
 * uim-fmt-ja https://github.com/deton/uim-fmt-ja
+
+History
+=======
+
+* 1.0.1 (2012-01-04)
+
+    Add function to split each line of filter output by "\a"
+    and use each part as candidate string, heading label, annotation
+    and key to select the candidate if filter command starts with ";;;".
+
+* 1.0.0 (2011-12-29)
+
+    Initial release.
