@@ -1,6 +1,6 @@
 ;;; launch external filter on selection or clipboad
 ;;;
-;;; Copyright (c) 2011 KIHARA Hideto https://github.com/deton/uim-external-filter
+;;; Copyright (c) 2011,2012 KIHARA Hideto https://github.com/deton/uim-external-filter
 ;;;
 ;;; All rights reserved.
 ;;;
@@ -37,6 +37,9 @@
 (require-custom "external-filter-custom.scm")
 
 (define external-filter-encoding "UTF-8")
+
+(define external-filter-separator-rows "\n")
+(define external-filter-separator-cols "\a")
 
 (define external-filter-key-command-alist '())
 
@@ -407,10 +410,10 @@
     (filter
       (lambda (x)
         (not (string=? x "")))
-      (string-split str "\n")))
+      (string-split str external-filter-separator-rows)))
   ;; "cand\alabel\aannotation\asingle-key-predicate"
   (define (split-cols row)
-    (string-split row "\a"))
+    (string-split row external-filter-separator-cols))
   ;; labelkey-alist: '((key-pred-str0 key-pred0 idx00 idx01 idx02 ...) ...)
   (define (make-labelkey-alist alist cols idx)
     (let* ((key-pred-str (and (>= (length cols) 4)
