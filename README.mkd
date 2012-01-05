@@ -263,7 +263,7 @@ See Also
 History
 =======
 
-* 1.0.1 (2012-01-04)
+* 1.0.1 (2012-01-05)
 
     Add function to split each line of filter output by "\a"
     and use each part as candidate string, heading label, annotation
