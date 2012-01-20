@@ -205,6 +205,7 @@ external-filter is customizable by uim-pref-gtk or uim-pref-qt4.
 * Maximum length of candidate string on candidate window (default: 80)
   (Characters over this length are shown as "...")
 * Number of candidates in candidate window at a time (default: 10)
+* enable registering filter command by upper case key (default: #t)
 * switch to default IM after commit (default: #f)
 
 * key to start filter command input (default: ":")
