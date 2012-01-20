@@ -19,6 +19,12 @@
   (N_ "Number of candidates in candidate window at a time")
   (N_ "long description will be here."))
 
+(define-custom 'external-filter-enable-register #t
+  '(external-filter)
+  '(boolean)
+  (N_ "enable registering filter command by upper case key")
+  (N_ "long description will be here."))
+
 (define-custom 'external-filter-switch-default-im-after-commit #f
   '(external-filter)
   '(boolean)
