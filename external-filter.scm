@@ -258,7 +258,11 @@
     (and (pair? latter)
          (car latter))))
 
-(define (external-filter-launch pc cmd-op)
+;;; launch external command.
+;;; @param cmd external command to launch by "/bin/sh -c".
+;;; @param str string to write on stdin of cmd.
+;;; @return string read from stdout of cmd or #f if launch is failed.
+(define (external-filter-launch-command cmd str)
   ;; XXX: process-io without parent reading ret from child to avoid error:
   ;;   Error: in >: integer required but got: #f
   ;; (ex: when cmd is "ls", result of ls is read by parent that is not number)
@@ -324,23 +328,24 @@
              (list->string (reverse rest)))
             (else
              (loop (file-read-char port) (cons c rest))))))
-  (define (launch cmd str)
-    (and-let*
-      ((fds (my-process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
-       (iport (open-file-port (list-ref fds 0)))
-       (oport (open-file-port (list-ref fds 1)))
-       (pid (list-ref fds 2)))
-      (file-display str oport)
-      (close-file-port oport)
-      (let ((res (file-read-all iport)))
-        (close-file-port iport)
-        ;; zombie cleanup. XXX: WNOHANG for avoiding block may leave zombie.
-        (process-waitpid pid (assq-cdr '$WNOHANG process-waitpid-options-alist))
-        (and (string? res)
-             (not (string=? res ""))
-             res))))
+  (and-let*
+    ((fds (my-process-io "/bin/sh" (list "/bin/sh" "-c" cmd)))
+     (iport (open-file-port (list-ref fds 0)))
+     (oport (open-file-port (list-ref fds 1)))
+     (pid (list-ref fds 2)))
+    (file-display str oport)
+    (close-file-port oport)
+    (let ((res (file-read-all iport)))
+      (close-file-port iport)
+      ;; zombie cleanup. XXX: WNOHANG for avoiding block may leave zombie.
+      (process-waitpid pid (assq-cdr '$WNOHANG process-waitpid-options-alist))
+      (and (string? res)
+           (not (string=? res ""))
+           res))))
+
+(define (external-filter-launch pc cmd-op)
   (define (launch-and-show pc cmd op str undo-str)
-    (let ((res (launch cmd str)))
+    (let ((res (external-filter-launch-command cmd str)))
       (if res
         (case op
           ((commit)
