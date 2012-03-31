@@ -265,6 +265,13 @@ See Also
 History
 =======
 
+* 1.0.2 (2012-03-31)
+  * Add custom whether to enable registering filter command by upper case key.
+  * Extract external-filter-launch-command as API
+    (for other uim IM calling the function to launch external filter command).
+    (uim-tutcode of uim-1.8.0 supports binding user defined procedure
+     to key sequence.)
+
 * 1.0.1 (2012-01-05)
 
     Add function to split each line of filter output by "\a"
